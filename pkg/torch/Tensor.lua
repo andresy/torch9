@@ -1,31 +1,13 @@
-ffi.cdef([[
-
-typedef struct Tensor
-{
-    long *__size;
-    long *__stride;
-    int __nDimension;
-    
-    Storage __storage;
-    long __storageOffset;
-    int __refcount;
-
-    char __flag;
-
-} Tensor;
-
-]])
-
-local Tensor = {__typename="torch.Tensor", REFCOUNTED=1}
+local Tensor = {__typename="torch.Tensor"}
+local mt
 
 local function rawInit(self)
-   self.__refcount = 1
---   self.__storage = nil
+   self.__storage = nil
    self.__storageOffset = 0
    self.__size = nil
    self.__stride = nil
    self.__nDimension = 0
-   self.__flag = Tensor.REFCOUNTED
+   self.__flag = 0
 end
 
 local function rawResize(self, nDimension, size, stride)
@@ -57,8 +39,8 @@ local function rawResize(self, nDimension, size, stride)
    
    if nDimension > 0 then
       if nDimension ~= self.__nDimension then
-         self.__size = ffi.C.realloc(self.__size, ffi.sizeof("long")*nDimension)
-         self.__stride = ffi.C.realloc(self.__stride, ffi.sizeof("long")*nDimension)
+         self.__size = ffi.new("long[?]", nDimension)
+         self.__stride = ffi.new("long[?]", nDimension)
          self.__nDimension = nDimension
       end
       
@@ -255,11 +237,12 @@ function Tensor.new(...)
 
    print('READ', storage, storageOffset, size, stride)
 
-   local self = ffi.new("Tensor")
+   local self = {}--ffi.new("Tensor")
+   setmetatable(self, mt)
    rawInit(self)
-   ffi.gc(self, function(self)
-                   Tensor.free(self)
-                end)
+--    ffi.gc(self, function(self)
+--                    Tensor.free(self)
+--                 end)
 
    
    if size and stride then
@@ -276,41 +259,24 @@ function Tensor.new(...)
    return self
 end
 
-function Tensor:free()
-   --XX   if bit.band(self.__flag, Tensor.REFCOUNTED) ~= 0 then
-   if true then
-      self.__refcount = self.__refcount - 1
---XX      if self.__refcount == 0 then
-      if true then
-         print('TENSOR: FREE')
-         ffi.C.free(self.__size)
-         ffi.C.free(self.__stride)
-         if self.__storage ~= nil then
---            self.__storage:free()
-         end
---         ffi.C.free(self)
-      end
-   end
-end
-
-ffi.metatype("Tensor", {__index=function(self, k)
-                                   if type(k) == 'number' then
-                                      if self.__nDimension == 1 then
-                                         return tonumber(TH.THTensor_get1d(self, k-1))
-                                      elseif self.__nDimension > 1 then
-                                         local t = TH.THTensor_newSelect(self, 0, k-1)
-                                         ffi.gc(t, function(self)
-                                                      print('freeing tensor -- []')
-                                                      TH.THTensor_free(self)
-                                                   end)
-                                         return t
-                                      else
-                                         error('empty tensor')
-                                      end
-                                   else
-                                      return mt[k]
-                                   end
-                                end})
+mt = {__index=function(self, k)
+                 if type(k) == 'number' then
+                    if self.__nDimension == 1 then
+                       return tonumber(TH.THTensor_get1d(self, k-1))
+                    elseif self.__nDimension > 1 then
+                       local t = TH.THTensor_newSelect(self, 0, k-1)
+                       ffi.gc(t, function(self)
+                                    print('freeing tensor -- []')
+                                    TH.THTensor_free(self)
+                                 end)
+                       return t
+                    else
+                       error('empty tensor')
+                    end
+                 else
+                    return mt[k]
+                 end
+              end}
 
 
 torch.Tensor = {}

@@ -1,33 +1,17 @@
-ffi.cdef([[
-
-void *malloc(size_t size);
-void *realloc(void *ptr, size_t size);
-
-typedef struct
-{
-   real *__data;
-   long __size;
-   char __flag;
-   int __refcount;
-} Storage;
-
-]])
-
-
 local Storage = {__typename="torch.Storage"}
+local mt
 
 function Storage.newWithSize(size)
-   local self = ffi.new("Storage")
+   local self = {}
+   setmetatable(self, mt)
    if size > 0 then
-      self.__data = ffi.C.malloc(ffi.sizeof("real")*size)
+      self.__data = ffi.new("real[?]", size)
       self.__size = size
    else
-      self.__data = 0
+      self.__data = nil
       self.__size = 0
    end
    self.__flag = 0
-   self.__refcount = 1
-   ffi.gc(self, Storage.free)
    return self
 end
 
@@ -56,15 +40,6 @@ function Storage.new(...)
    return self
 end
 
-function Storage:free()
-   self.__refcount = self.__refcount - 1
-   if self.__refcount == 0 then
-      print('freeing storage')
-      ffi.C.free(self.__data)
-      ffi.C.free(self)
-   end
-end
-
 function Storage:fill(value)
    for i=0,tonumber(self.__size)-1 do
       self.__data[i] = value
@@ -78,13 +53,13 @@ end
 
 function Storage:resize(size)
    if size > 0 and size > self.__size then
-      self.__data = ffi.C.realloc(self.__data, ffi.sizeof("real")*size)
+      self.__data = ffi.new("real[?]", size)
       self.__size = size
    end
    return self
 end
 
-ffi.metatype("Storage", {__index=function(self, k)
+mt = {__index=function(self, k)
                                       if type(k) == 'number' then
                                          if k > 0 and k <= self.__size then
                                             return tonumber(self.__data[k-1])
@@ -97,13 +72,17 @@ ffi.metatype("Storage", {__index=function(self, k)
                                    end,
                            
                            __newindex=function(self, k, v)
-                                         if k > 0 and k <= self.__size then
-                                            self.__data[k-1] = v
+                                         if type(k) == 'number' then
+                                            if k > 0 and k <= self.__size then
+                                               self.__data[k-1] = v
+                                            else
+                                               error('index out of bounds')
+                                            end
                                          else
-                                            error('index out of bounds')
+                                            rawset(self, k, v)
                                          end
                                       end,
-                        })
+                        }
 
 torch.Storage = {}
 setmetatable(torch.Storage, {__index=Storage,
