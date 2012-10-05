@@ -256,18 +256,18 @@ function Tensor:narrow(...)
    local narg = #arg
    local src, dimension, firstIndex, size
    if narg == 3 then
-      src, dimension, firstIndex, size = self, arg[1]-1, arg[2]-1, arg[3]
+      self, src, dimension, firstIndex, size = torch.Tensor(), self, arg[1]-1, arg[2]-1, arg[3]
    elseif narg == 4 then
       src, dimension, firstIndex, size = arg[1], arg[2]-1, arg[3]-1, arg[4]
    else
       error('invalid arguments')
    end
+   self:set(src)
 
    assert(dimension >= 0 and dimension < src.__nDimension, 'out of range')
    assert(firstIndex >= 0 and firstIndex < src.__size[dimension], 'out of range')
    assert(size > 0 and firstIndex+size <= src.__size[dimension], 'out of range')
   
-   self:set(src)
    
    if firstIndex > 0 then
       self.__storageOffset = self.__storageOffset + firstIndex*self.__stride[dimension];
@@ -282,7 +282,7 @@ function Tensor:select(...)
    local narg = #arg
    local src, dimension, sliceIndex
    if narg == 2 then
-      src, dimension, sliceIndex = self, arg[1]-1, arg[2]-1
+      self, src, dimension, sliceIndex = torch.Tensor(), self, arg[1]-1, arg[2]-1
    elseif narg == 3 then
       src, dimension, sliceIndex, size = arg[1], arg[2]-1, arg[3]-1
    else
@@ -311,17 +311,17 @@ function Tensor:transpose(...)
    local narg = #arg
    local src, dimension1, dimension2
    if narg == 2 then
-      src, dimension1, dimension2 = self, arg[1]-1, arg[2]-1
+      self, src, dimension1, dimension2 = torch.Tensor(), self, arg[1]-1, arg[2]-1
    elseif narg == 3 then
       src, dimension1, dimension2 = arg[1], arg[2]-1, arg[3]-1
    else
       error('invalid arguments')
    end
+   self:set(src)
 
    assert(dimension1 >= 0 and dimension1 < src.__nDimension, 'out of range')
    assert(dimension2 >= 0 and dimension2 < src.__nDimension, 'out of range')
 
-   self:set(src)
 
    if dimension1 == dimension2 then
       return self
@@ -342,19 +342,19 @@ function Tensor:unfold(...)
    local narg = #arg
    local src, dimension, size, step
    if narg == 3 then
-      src, dimension, size, step = self, arg[1]-1, arg[2], arg[3]
+      self, src, dimension, size, step = torch.Tensor(), self, arg[1]-1, arg[2], arg[3]
    elseif narg == 4 then
-      src, dimension, size, step = arg[1], arg[2]-1, arg[3], arg[4]
+      self, src, dimension, size, step = self, arg[1], arg[2]-1, arg[3], arg[4]
    else
       error('invalid arguments')
    end
+   self:set(src)
 
    assert(src.__nDimension > 0, "cannot unfold an empty tensor")
    assert(dimension < src.__nDimension, "out of range")
    assert(size <= src.__size[dimension], "out of range")
    assert(step > 0, "invalid step")
 
-   self:set(src)
 
    local newSize = ffi.new("long[?]", self.__nDimension+1)
    local newStride = ffi.new("long[?]", self.__nDimension+1)
@@ -378,8 +378,17 @@ function Tensor:unfold(...)
    return self
 end
 
-function Tensor:squeeze(src)
-   src = src or self
+function Tensor:squeeze(...)
+   local arg = {...}
+   local narg = #arg
+   local src
+   if narg == 0 then
+      self, src = torch.Tensor(), self
+   elseif narg == 1 then
+      src = arg[1]
+   else
+      error('invalid arguments')
+   end
    self:set(src)
 
    -- return nothing if tensor is empty!
