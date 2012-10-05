@@ -1,13 +1,13 @@
 local Tensor = {__typename="torch.Tensor"}
 local mt
 
-local function rawInit(self)
-   self.__storage = nil
+local function rawInit()
+   local self = {}
    self.__storageOffset = 0
-   self.__size = nil
-   self.__stride = nil
    self.__nDimension = 0
    self.__flag = 0
+   setmetatable(self, mt)
+   return self
 end
 
 local function rawResize(self, nDimension, size, stride)
@@ -60,11 +60,11 @@ local function rawResize(self, nDimension, size, stride)
       end
       
       if totalSize+self.__storageOffset > 0 then
-         if self.__storage == nil then
-            self.__storage = torch.Storage() --:retain()
+         if not self.__storage then
+            self.__storage = torch.Storage()
          end
          if totalSize+self.__storageOffset > self.__storage.__size then
-            self.__storage:resize(totalSize+self.__storageOffset)
+            self.__storage:resize(tonumber(totalSize+self.__storageOffset))
          end
       end
    else
@@ -73,45 +73,32 @@ local function rawResize(self, nDimension, size, stride)
 end
 
 local function rawSet(self, storage, storageOffset, nDimension, size, stride)
-   print('rawSet', self, storage, storageOffset, nDimension, size, stride)
-  -- storage
-  if self.__storage ~= storage then
-     if self.__storage ~= nil then
---X        self.__storage:free()
-     end
+   -- storage
+   self.__storage = storage
+   
+   -- storageOffset
+   assert(storageOffset >= 0, "Tensor: invalid storage offset")
+   self.__storageOffset = storageOffset
 
-    if storage ~= nil then
-       self.__storage = storage
-       self.__storage:retain()
-    else
---       self.__storage = nil
-    end
- end
-
- -- storageOffset
- assert(storageOffset >= 0, "Tensor: invalid storage offset")
- self.__storageOffset = storageOffset
-
- -- size and stride
- rawResize(self, nDimension, size, stride)
+   -- size and stride
+   rawResize(self, nDimension, size, stride)
 end
 
 -- access methods
 function Tensor:storage()
-   -- DEBUG: check this out
   return self.__storage
 end
 
 function Tensor:storageOffset()
-  return self.__storageOffset
+  return self.__storageOffset + 1
 end
 
 function Tensor:nDimension()
-  return self.__nDimension;
+  return self.__nDimension
 end
 
 function Tensor:dim()
-  return self.__nDimension;
+  return self.__nDimension
 end
 
 function Tensor:size(dim)
@@ -235,15 +222,7 @@ function Tensor.new(...)
    local arg = {...}
    local storage, storageOffset, size, stride = readtensorsizestride(arg)
 
-   print('READ', storage, storageOffset, size, stride)
-
-   local self = {}--ffi.new("Tensor")
-   setmetatable(self, mt)
-   rawInit(self)
---    ffi.gc(self, function(self)
---                    Tensor.free(self)
---                 end)
-
+   local self = rawInit()
    
    if size and stride then
       assert(size.__size == stride.__size, 'inconsistent size')
@@ -252,7 +231,7 @@ function Tensor.new(...)
    rawSet(self,
           storage,
           storageOffset,
-          tonumber(size and size.__size or (stride and stride.__size or 0)),
+          size and size.__size or (stride and stride.__size or 0),
           size and size.__data or nil,
           stride and stride.__data or nil)
 
@@ -274,7 +253,7 @@ mt = {__index=function(self, k)
                        error('empty tensor')
                     end
                  else
-                    return mt[k]
+                    return Tensor[k]
                  end
               end}
 

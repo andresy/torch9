@@ -1,14 +1,13 @@
 local Storage = {__typename="torch.Storage"}
 local mt
 
-function Storage.newWithSize(size)
+local function rawInitWithSize(size)
    local self = {}
    setmetatable(self, mt)
    if size > 0 then
       self.__data = ffi.new("real[?]", size)
       self.__size = size
    else
-      self.__data = nil
       self.__size = 0
    end
    self.__flag = 0
@@ -20,13 +19,13 @@ function Storage.new(...)
    local narg = #arg
    local self
    if narg == 0 then
-      return Storage.newWithSize(0)
+      return rawInitWithSize(0)
    elseif narg == 1 and type(arg[1]) == 'number' then
-      return Storage.newWithSize(arg[1])
+      return rawInitWithSize(arg[1])
    elseif narg == 1 and type(arg[1]) == 'table' then
       local tbl = arg[1]
       local size = #tbl
-      self = Storage.newWithSize(size)
+      self = rawInitWithSize(size)
       for i=1,size do
          self.__data[i-1] = tbl[i]
       end
@@ -41,14 +40,14 @@ function Storage.new(...)
 end
 
 function Storage:fill(value)
-   for i=0,tonumber(self.__size)-1 do
+   for i=0,self.__size-1 do
       self.__data[i] = value
    end
    return self
 end
 
 function Storage:size()
-   return tonumber(self.__size)
+   return self.__size
 end
 
 function Storage:resize(size)
@@ -59,30 +58,35 @@ function Storage:resize(size)
    return self
 end
 
+function Storage:rawCopy(data)
+   ffi.copy(self.__data, data, ffi.sizeof('real')*self.__size)
+   return self
+end
+
 mt = {__index=function(self, k)
-                                      if type(k) == 'number' then
-                                         if k > 0 and k <= self.__size then
-                                            return tonumber(self.__data[k-1])
-                                         else
-                                            error('index out of bounds')
-                                         end
-                                      else
-                                         return Storage[k]
-                                      end
-                                   end,
-                           
-                           __newindex=function(self, k, v)
-                                         if type(k) == 'number' then
-                                            if k > 0 and k <= self.__size then
-                                               self.__data[k-1] = v
-                                            else
-                                               error('index out of bounds')
-                                            end
-                                         else
-                                            rawset(self, k, v)
-                                         end
-                                      end,
-                        }
+                 if type(k) == 'number' then
+                    if k > 0 and k <= self.__size then
+                       return tonumber(self.__data[k-1])
+                    else
+                       error('index out of bounds')
+                    end
+                 else
+                    return Storage[k]
+                 end
+              end,
+      
+      __newindex=function(self, k, v)
+                    if type(k) == 'number' then
+                       if k > 0 and k <= self.__size then
+                          self.__data[k-1] = v
+                       else
+                          error('index out of bounds')
+                       end
+                    else
+                       rawset(self, k, v)
+                    end
+                 end,
+   }
 
 torch.Storage = {}
 setmetatable(torch.Storage, {__index=Storage,
