@@ -134,6 +134,7 @@ end
 
 function Tensor:clearFlag(flag)
    self.__flag = bit.band(self.__flag, bit.bnot(flag))
+   return self
 end
 
 -- creation
@@ -236,6 +237,225 @@ function Tensor.new(...)
           stride and stride.__data or nil)
 
    return self
+end
+
+function Tensor:set(src)
+   if self ~= src then
+      rawSet(self,
+             src.__storage,
+             src.__storageOffset,
+             src.__nDimension,
+             src.__size,
+             src.__stride)
+   end
+   return self
+end
+
+function Tensor:narrow(...)
+   local arg = {...}
+   local narg = #arg
+   local src, dimension, firstIndex, size
+   if narg == 3 then
+      src, dimension, firstIndex, size = self, arg[1]-1, arg[2]-1, arg[3]
+   elseif narg == 4 then
+      src, dimension, firstIndex, size = arg[1], arg[2]-1, arg[3]-1, arg[4]
+   else
+      error('invalid arguments')
+   end
+
+   assert(dimension >= 0 and dimension < src.__nDimension, 'out of range')
+   assert(firstIndex >= 0 and firstIndex < src.__size[dimension], 'out of range')
+   assert(size > 0 and firstIndex+size <= src.__size[dimension], 'out of range')
+  
+   self:set(src)
+   
+   if firstIndex > 0 then
+      self.__storageOffset = self.__storageOffset + firstIndex*self.__stride[dimension];
+   end
+   self.__size[dimension] = size
+
+   return self
+end
+
+function Tensor:select(...)
+   local arg = {...}
+   local narg = #arg
+   local src, dimension, sliceIndex
+   if narg == 2 then
+      src, dimension, sliceIndex = self, arg[1]-1, arg[2]-1
+   elseif narg == 3 then
+      src, dimension, sliceIndex, size = arg[1], arg[2]-1, arg[3]-1
+   else
+      error('invalid arguments')
+   end
+
+   assert(dimension >= 0 and dimension < src.__nDimension, 'out of range')
+   assert(sliceIndex >= 0 and sliceIndex < src.__size[dimension], 'out of range')
+
+   if self.__nDimension == 1 then
+      return tonumber( (self.__storage.__data + self.__storageOffset)[sliceIndex*self.__stride[0]] )
+   else
+      self:narrow(self, src, dimension, sliceIndex, 1)
+      for d=dimension,self.__nDimension-2 do
+         self.__size[d] = self.__size[d+1]
+         self.__stride[d] = self.__stride[d+1]
+      end
+      self.__nDimension = self.__nDimension -1
+   end
+
+   return self
+end
+
+function Tensor:transpose(...)
+   local arg = {...}
+   local narg = #arg
+   local src, dimension1, dimension2
+   if narg == 2 then
+      src, dimension1, dimension2 = self, arg[1]-1, arg[2]-1
+   elseif narg == 3 then
+      src, dimension1, dimension2 = arg[1], arg[2]-1, arg[3]-1
+   else
+      error('invalid arguments')
+   end
+
+   assert(dimension1 >= 0 and dimension1 < src.__nDimension, 'out of range')
+   assert(dimension2 >= 0 and dimension2 < src.__nDimension, 'out of range')
+
+   self:set(src)
+
+   if dimension1 == dimension2 then
+      return self
+   end
+ 
+   local z = self.__stride[dimension1]
+   self.__stride[dimension1] = self.__stride[dimension2]
+   self.__stride[dimension2] = z
+   z = self.__size[dimension1]
+   self.__size[dimension1] = self.__size[dimension2]
+   self.__size[dimension2] = z
+
+   return self
+end
+
+function Tensor:unfold(...)
+   local arg = {...}
+   local narg = #arg
+   local src, dimension, size, step
+   if narg == 3 then
+      src, dimension, size, step = self, arg[1]-1, arg[2], arg[3]
+   elseif narg == 4 then
+      src, dimension, size, step = arg[1], arg[2]-1, arg[3], arg[4]
+   else
+      error('invalid arguments')
+   end
+
+   assert(src.__nDimension > 0, "cannot unfold an empty tensor")
+   assert(dimension < src.__nDimension, "out of range")
+   assert(size <= src.__size[dimension], "out of range")
+   assert(step > 0, "invalid step")
+
+   self:set(src)
+
+   local newSize = ffi.new("long[?]", self.__nDimension+1)
+   local newStride = ffi.new("long[?]", self.__nDimension+1)
+
+   newSize[self.__nDimension] = size
+   newStride[self.__nDimension] = self.__stride[dimension]
+   for d=0,self.__nDimension-1 do
+      if d == dimension then
+         newSize[d] = math.floor((self.__size[d] - size) / step) + 1
+         newStride[d] = step*self.__stride[d]
+      else
+         newSize[d] = self.__size[d]
+         newStride[d] = self.__stride[d]
+      end
+   end
+
+   self.__size = newSize
+   self.__stride = newStride
+   self.__nDimension = self.__nDimension + 1
+
+   return self
+end
+
+function Tensor:squeeze(src)
+   src = src or self
+   self:set(src)
+
+   -- return nothing if tensor is empty!
+   if self.__nDimension == 0 then
+      return
+   end
+
+   local ndim = 0
+   for d=0,src.__nDimension-1 do
+      if src.__size[d] ~= 1 then
+         if d ~= ndim then
+            self.__size[ndim] = src.__size[d]
+            self.__stride[ndim] = src.__stride[d]
+         end
+         ndim = ndim + 1
+      end
+   end
+
+   --- handle 0-dimension tensors
+   if ndim == 0 then
+      return tonumber( (self.__storage.__data + self.__storageOffset)[0] )
+   end
+   self.__nDimension = ndim
+
+   return self
+end
+
+function Tensor:squeeze1d(...)
+   local arg = {...}
+   local narg = #arg
+   local src, dimension
+   if narg == 1 then
+      src, dimension = self, arg[1]-1
+   else
+      src, dimension = arg[1], arg[2]-1
+   end
+
+  assert(dimension < src.__nDimension, "dimension out of range")
+
+  self:set(src)
+
+  if src.__size[dimension] == 1 and src.__nDimension > 1 then
+     for d=dimension,self.__nDimension-2 do
+        self.__size[d] = self.__size[d+1]
+        self.__stride[d] = self.__stride[d+1]
+     end
+     self.__nDimension = self.__nDimension - 1
+  end
+
+  return self
+end
+
+function Tensor:isContiguous()
+  local z = 1
+   for d=self.__nDimension-1,0,-1 do
+      if self.__size[d] ~= 1 then
+         if self.__stride[d] == z then
+            z = z * self.__size[d]
+         else
+            return false
+         end
+      end
+   end
+   return true
+end
+
+function Tensor:nElement()
+   if self.__nDimension == 0 then
+      return 0
+   else
+      local nElement = 1;
+      for d=0,self.__nDimension-1 do
+         nElement = nElement*self.__size[d]
+      end
+      return tonumber(nElement)
+   end
 end
 
 mt = {__index=function(self, k)
