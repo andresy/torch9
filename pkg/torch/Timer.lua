@@ -1,13 +1,28 @@
+if jit.os == 'OSX' then
+   ffi.cdef([[
+     typedef long time_t;
+
+     typedef struct timeval {
+      time_t tv_sec;
+      int tv_usec;
+     };
+
+    int gettimeofday(struct timeval* t, void* tzp);
+  ]])
+else
+   ffi.cdef([[
+     typedef long time_t;
+
+     typedef struct timeval {
+      time_t tv_sec;
+      time_t tv_usec;
+     };
+
+    int gettimeofday(struct timeval* t, void* tzp);
+  ]])
+end
+
 ffi.cdef([[
-  typedef long time_t;
-
-  typedef struct timeval {
-    time_t tv_sec;
-    time_t tv_usec;
-  };
-
-  int gettimeofday(struct timeval* t, void* tzp);
-
 struct rusage {
              struct timeval ru_utime; /* user time used */
              struct timeval ru_stime; /* system time used */
@@ -31,7 +46,7 @@ int getrusage(int who, struct rusage *r_usage);
 
 ]])
 
-local Timer = {__typename="torch.Timer", RUSAGE_SELF=0, RUSAGE_CHILDREN=1}
+local Timer = {__typename="torch.Timer", RUSAGE_SELF=0, RUSAGE_CHILDREN=-1}
 local mt
 
 function Timer.real()
