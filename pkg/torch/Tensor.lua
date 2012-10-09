@@ -251,6 +251,12 @@ function Tensor:set(src)
    return self
 end
 
+function Tensor:resize(...)
+   local arg = {...}
+   local size, stride = readsizestride(arg)
+   rawResize(self, size.__size, size.__data, stride and stride.__data or nil)
+end
+
 function Tensor:narrow(...)
    local arg = {...}
    local narg = #arg
