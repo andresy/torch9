@@ -1,6 +1,8 @@
 local Tensor = {__typename="torch.Tensor"}
 local mt
 
+local longvlact = ffi.typeof('long[?]')
+
 local function rawInit()
    local self = {}
    self.__storageOffset = 0
@@ -39,8 +41,8 @@ local function rawResize(self, nDimension, size, stride)
    
    if nDimension > 0 then
       if nDimension ~= self.__nDimension then
-         self.__size = ffi.new("long[?]", nDimension)
-         self.__stride = ffi.new("long[?]", nDimension)
+         self.__size = longvlact(nDimension)
+         self.__stride = longvlact(nDimension)
          self.__nDimension = nDimension
       end
       
@@ -140,91 +142,90 @@ end
 -- creation
 
 -- checkout http://www.torch.ch/manual/torch/tensor
-local function readtensorsizestride(arg)
+local function readtensorsizestride(...)
    local storage
    local offset
    local size
    local stride
-   local narg = #arg
+   local narg = select('#', ...)
 
    if narg == 0 then
       return nil, 0, nil, nil
-   elseif narg == 1 and type(arg[1]) == 'number' then
-      return nil, 0, torch.LongStorage{arg[1]}, nil
-   elseif narg == 1 and type(arg[1]) == 'table' then
+   elseif narg == 1 and type(select(1, ...)) == 'number' then
+      return nil, 0, torch.LongStorage{select(1, ...)}, nil
+   elseif narg == 1 and type(select(1, ...)) == 'table' then
       error('not implemented yet')
       -- todo
-   elseif narg == 1 and type(arg[1]) == 'torch.LongStorage' then
-      return nil, 0, arg[1], nil
-   elseif narg == 1 and type(arg[1]) == 'torch.Storage' then
-      return arg[1], 0, nil, nil
-   elseif narg == 1 and type(arg[1]) == 'torch.Tensor' then
-      return arg[1]:storage(), arg[1]:storageOffset(), arg[1]:size(), arg[1]:stride()
-   elseif narg == 2 and type(arg[1]) == 'number' and type(arg[2]) == 'number' then
-      return nil, 0, torch.LongStorage{arg[1], arg[2]}, nil
-   elseif narg == 2 and type(arg[1]) == 'torch.LongStorage' and type(arg[2]) == 'torch.LongStorage' then
-      return nil, 0, arg[1], arg[2]
-   elseif narg == 3 and type(arg[1]) == 'number' and type(arg[2]) == 'number' and type(arg[3]) == 'number' then
-      return nil, 0, torch.LongStorage{arg[1], arg[2], arg[3]}
-   elseif narg == 3 and type(arg[1]) == 'torch.Storage' and type(arg[2]) == 'number' and type(arg[3]) == 'torch.LongStorage' then
-      return arg[1], arg[2], arg[3], nil
-   elseif narg == 3 and type(arg[1]) == 'torch.Storage' and type(arg[2]) == 'number' and type(arg[3]) == 'number' then
-      return arg[1], arg[2], torch.LongStorage{arg[3]}, nil
-   elseif narg == 4 and type(arg[1]) == 'number' and type(arg[2]) == 'number' and type(arg[3]) == 'number' and type(arg[4]) == 'number' then
-      return nil, 0, torch.LongStorage{arg[1], arg[2], arg[3], arg[4]}
-   elseif narg == 4 and type(arg[1]) == 'torch.Storage' and type(arg[2]) == 'number' and type(arg[3]) == 'torch.LongStorage' and type(arg[4]) == 'torch.LongStorage' then
-      return arg[1], arg[2], arg[3], arg[4]
-   elseif narg == 4 and type(arg[1]) == 'torch.Storage' and type(arg[2]) == 'number'  and type(arg[3]) == 'number' and type(arg[4]) == 'number' then
-      return arg[1], arg[2], torch.LongStorage{arg[3]}, torch.LongStorage{arg[4]}
-   elseif narg == 5 and type(arg[1]) == 'torch.Storage' and type(arg[2]) == 'number'  and type(arg[3]) == 'number' and type(arg[4]) == 'number' and type(arg[5]) == 'number' then
-      return arg[1], arg[2], torch.LongStorage{arg[3], arg[5]}, torch.LongStorage{arg[4]}
-   elseif narg == 6 and type(arg[1]) == 'torch.Storage' and type(arg[2]) == 'number'  and type(arg[3]) == 'number' and type(arg[4]) == 'number' and type(arg[5]) == 'number' and type(arg[6]) == 'number' then
-      return arg[1], arg[2], torch.LongStorage{arg[3], arg[5]}, torch.LongStorage{arg[4], arg[6]}
-   elseif narg == 7 and type(arg[1]) == 'torch.Storage' and type(arg[2]) == 'number'  and type(arg[3]) == 'number' and type(arg[4]) == 'number' and type(arg[5]) == 'number' and type(arg[6]) == 'number' and type(arg[7]) == 'number' then
-      return arg[1], arg[2], torch.LongStorage{arg[3], arg[5], arg[7]}, torch.LongStorage{arg[4], arg[6]}
-   elseif narg == 8 and type(arg[1]) == 'torch.Storage' and type(arg[2]) == 'number'  and type(arg[3]) == 'number' and type(arg[4]) == 'number' and type(arg[5]) == 'number' and type(arg[6]) == 'number' and type(arg[7]) == 'number' and type(arg[8]) == 'number' then
-      return arg[1], arg[2], torch.LongStorage{arg[3], arg[5], arg[7]}, torch.LongStorage{arg[4], arg[6], arg[8]}
-   elseif narg == 9 and type(arg[1]) == 'torch.Storage' and type(arg[2]) == 'number'  and type(arg[3]) == 'number' and type(arg[4]) == 'number' and type(arg[5]) == 'number' and type(arg[6]) == 'number' and type(arg[7]) == 'number' and type(arg[8]) == 'number' and type(arg[9]) == 'number' then
-      return arg[1], arg[2], torch.LongStorage{arg[3], arg[5], arg[7], arg[9]}, torch.LongStorage{arg[4], arg[6], arg[8]}
-   elseif narg == 10 and type(arg[1]) == 'torch.Storage' and type(arg[2]) == 'number'  and type(arg[3]) == 'number' and type(arg[4]) == 'number' and type(arg[5]) == 'number' and type(arg[6]) == 'number' and type(arg[7]) == 'number' and type(arg[8]) == 'number' and type(arg[9]) == 'number' and type(arg[10]) == 'number' then
-      return arg[1], arg[2], torch.LongStorage{arg[3], arg[5], arg[7], arg[9]}, torch.LongStorage{arg[4], arg[6], arg[8], arg[10]}
+   elseif narg == 1 and type(select(1, ...)) == 'torch.LongStorage' then
+      return nil, 0, select(1, ...), nil
+   elseif narg == 1 and type(select(1, ...)) == 'torch.Storage' then
+      return select(1, ...), 0, nil, nil
+   elseif narg == 1 and type(select(1, ...)) == 'torch.Tensor' then
+      return select(1, ...):storage(), select(1, ...):storageOffset(), select(1, ...):size(), select(1, ...):stride()
+   elseif narg == 2 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' then
+      return nil, 0, torch.LongStorage{select(1, ...), select(2, ...)}, nil
+   elseif narg == 2 and type(select(1, ...)) == 'torch.LongStorage' and type(select(2, ...)) == 'torch.LongStorage' then
+      return nil, 0, select(1, ...), select(2, ...)
+   elseif narg == 3 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' then
+      return nil, 0, torch.LongStorage{select(1, ...), select(2, ...), select(3, ...)}
+   elseif narg == 3 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'torch.LongStorage' then
+      return select(1, ...), select(2, ...), select(3, ...), nil
+   elseif narg == 3 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' then
+      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...)}, nil
+   elseif narg == 4 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' then
+      return nil, 0, torch.LongStorage{select(1, ...), select(2, ...), select(3, ...), select(4, ...)}
+   elseif narg == 4 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'torch.LongStorage' and type(select(4, ...)) == 'torch.LongStorage' then
+      return select(1, ...), select(2, ...), select(3, ...), select(4, ...)
+   elseif narg == 4 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' then
+      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...)}, torch.LongStorage{select(4, ...)}
+   elseif narg == 5 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' then
+      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...)}, torch.LongStorage{select(4, ...)}
+   elseif narg == 6 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' then
+      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...)}, torch.LongStorage{select(4, ...), select(6, ...)}
+   elseif narg == 7 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' then
+      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...)}, torch.LongStorage{select(4, ...), select(6, ...)}
+   elseif narg == 8 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' then
+      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...)}
+   elseif narg == 9 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' and type(select(9, ...)) == 'number' then
+      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...), select(9, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...)}
+   elseif narg == 10 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' and type(select(9, ...)) == 'number' and type(select(10, ...)) == 'number' then
+      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...), select(9, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...), select(10, ...)}
    else
       error('invalid arguments')
    end
 end
 
-local function readsizestride(arg)
+local function readsizestride(...)
    local size
    local stride
-   local narg = #arg
+   local narg = select('#', ...)
 
-   if narg == 1 and type(arg[1]) == 'number' then
-      return torch.LongStorage{arg[1]}, nil
-   elseif narg == 1 and type(arg[1]) == 'table' then
-      return torch.LongStorage(arg[1]), nil
-   elseif narg == 1 and type(arg[1]) == 'torch.LongStorage' then
-      return arg[1], nil
-   elseif narg == 2 and type(arg[1]) == 'number' and type(arg[2]) == 'number' then
-      return torch.LongStorage{arg[1], arg[2]}, nil
-   elseif narg == 2 and type(arg[1]) == 'table' and type(arg[2]) == 'table' then
-      return torch.LongStorage(arg[1]), torch.LongStorage(arg[2])
-   elseif narg == 2 and type(arg[1]) == 'torch.LongStorage' and type(arg[2]) == 'torch.LongStorage' then
-      return arg[1], arg[2]
-   elseif narg == 3 and type(arg[1]) == 'number' and type(arg[2]) == 'number' and type(arg[3]) == 'number' then
-      return torch.LongStorage{arg[1], arg[2], arg[3]}, nil
-   elseif narg == 4 and type(arg[1]) == 'number' and type(arg[2]) == 'number' and type(arg[3]) == 'number' and type(arg[4]) == 'number' then
-      return torch.LongStorage{arg[1], arg[2], arg[3], arg[4]}, nil
+   if narg == 1 and type(select(1, ...)) == 'number' then
+      return torch.LongStorage{select(1, ...)}, nil
+   elseif narg == 1 and type(select(1, ...)) == 'table' then
+      return torch.LongStorage(select(1, ...)), nil
+   elseif narg == 1 and type(select(1, ...)) == 'torch.LongStorage' then
+      return select(1, ...), nil
+   elseif narg == 2 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' then
+      return torch.LongStorage{select(1, ...), select(2, ...)}, nil
+   elseif narg == 2 and type(select(1, ...)) == 'table' and type(select(2, ...)) == 'table' then
+      return torch.LongStorage(select(1, ...)), torch.LongStorage(select(2, ...))
+   elseif narg == 2 and type(select(1, ...)) == 'torch.LongStorage' and type(select(2, ...)) == 'torch.LongStorage' then
+      return select(1, ...), select(2, ...)
+   elseif narg == 3 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' then
+      return torch.LongStorage{select(1, ...), select(2, ...), select(3, ...)}, nil
+   elseif narg == 4 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' then
+      return torch.LongStorage{select(1, ...), select(2, ...), select(3, ...), select(4, ...)}, nil
    else
       error('invalid arguments')
    end
 end
 
 function Tensor.new(...)
-   local arg = {...}
-   local storage, storageOffset, size, stride = readtensorsizestride(arg)
+   local storage, storageOffset, size, stride = readtensorsizestride(...)
 
    local self = rawInit()
-   
+
    if size and stride then
       assert(size.__size == stride.__size, 'inconsistent size')
    end
@@ -252,19 +253,17 @@ function Tensor:set(src)
 end
 
 function Tensor:resize(...)
-   local arg = {...}
-   local size, stride = readsizestride(arg)
+   local size, stride = readsizestride(...)
    rawResize(self, size.__size, size.__data, stride and stride.__data or nil)
 end
 
 function Tensor:narrow(...)
-   local arg = {...}
-   local narg = #arg
+   local narg = select('#', ...)
    local src, dimension, firstIndex, size
    if narg == 3 then
-      self, src, dimension, firstIndex, size = torch.Tensor(), self, arg[1]-1, arg[2]-1, arg[3]
+      self, src, dimension, firstIndex, size = torch.Tensor(), self, select(1, ...)-1, select(2, ...)-1, select(3, ...)
    elseif narg == 4 then
-      src, dimension, firstIndex, size = arg[1], arg[2]-1, arg[3]-1, arg[4]
+      src, dimension, firstIndex, size = select(1, ...), select(2, ...)-1, select(3, ...)-1, select(4, ...)
    else
       error('invalid arguments')
    end
@@ -284,13 +283,12 @@ function Tensor:narrow(...)
 end
 
 function Tensor:select(...)
-   local arg = {...}
-   local narg = #arg
+   local narg = select('#', ...)
    local src, dimension, sliceIndex
    if narg == 2 then
-      self, src, dimension, sliceIndex = torch.Tensor(), self, arg[1]-1, arg[2]-1
+      self, src, dimension, sliceIndex = torch.Tensor(), self, select(1, ...)-1, select(2, ...)-1
    elseif narg == 3 then
-      src, dimension, sliceIndex, size = arg[1], arg[2]-1, arg[3]-1
+      src, dimension, sliceIndex, size = select(1, ...), select(2, ...)-1, select(3, ...)-1
    else
       error('invalid arguments')
    end
@@ -313,13 +311,12 @@ function Tensor:select(...)
 end
 
 function Tensor:transpose(...)
-   local arg = {...}
-   local narg = #arg
+   local narg = select('#', ...)
    local src, dimension1, dimension2
    if narg == 2 then
-      self, src, dimension1, dimension2 = torch.Tensor(), self, arg[1]-1, arg[2]-1
+      self, src, dimension1, dimension2 = torch.Tensor(), self, select(1, ...)-1, select(2, ...)-1
    elseif narg == 3 then
-      src, dimension1, dimension2 = arg[1], arg[2]-1, arg[3]-1
+      src, dimension1, dimension2 = select(1, ...), select(2, ...)-1, select(3, ...)-1
    else
       error('invalid arguments')
    end
@@ -344,13 +341,12 @@ function Tensor:transpose(...)
 end
 
 function Tensor:unfold(...)
-   local arg = {...}
-   local narg = #arg
+   local narg = select('#', ...)
    local src, dimension, size, step
    if narg == 3 then
-      self, src, dimension, size, step = torch.Tensor(), self, arg[1]-1, arg[2], arg[3]
+      self, src, dimension, size, step = torch.Tensor(), self, select(1, ...)-1, select(2, ...), select(3, ...)
    elseif narg == 4 then
-      self, src, dimension, size, step = self, arg[1], arg[2]-1, arg[3], arg[4]
+      self, src, dimension, size, step = self, select(1, ...), select(2, ...)-1, select(3, ...), select(4, ...)
    else
       error('invalid arguments')
    end
@@ -362,8 +358,8 @@ function Tensor:unfold(...)
    assert(step > 0, "invalid step")
 
 
-   local newSize = ffi.new("long[?]", self.__nDimension+1)
-   local newStride = ffi.new("long[?]", self.__nDimension+1)
+   local newSize = longvlact(self.__nDimension+1)
+   local newStride = longvlact(self.__nDimension+1)
 
    newSize[self.__nDimension] = size
    newStride[self.__nDimension] = self.__stride[dimension]
@@ -385,13 +381,12 @@ function Tensor:unfold(...)
 end
 
 function Tensor:squeeze(...)
-   local arg = {...}
-   local narg = #arg
+   local narg = select('#', ...)
    local src
    if narg == 0 then
       self, src = torch.Tensor(), self
    elseif narg == 1 then
-      src = arg[1]
+      src = select(1, ...)
    else
       error('invalid arguments')
    end
@@ -423,13 +418,12 @@ function Tensor:squeeze(...)
 end
 
 function Tensor:squeeze1d(...)
-   local arg = {...}
-   local narg = #arg
+   local narg = select('#', ...)
    local src, dimension
    if narg == 1 then
-      src, dimension = self, arg[1]-1
+      src, dimension = self, select(1, ...)-1
    else
-      src, dimension = arg[1], arg[2]-1
+      src, dimension = select(1, ...), select(2, ...)-1
    end
 
   assert(dimension < src.__nDimension, "dimension out of range")

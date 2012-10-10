@@ -1,11 +1,15 @@
 local Storage = {__typename="torch.Storage"}
 local mt
 
+local realsz = ffi.sizeof('real')
+local realptrct = ffi.typeof('real*')
+
 local function rawInitWithSize(size)
    local self = {}
    setmetatable(self, mt)
    if size > 0 then
-      self.__data = ffi.new("real[?]", size)
+      self.__data = ffi.cast(realptrct, ffi.C.malloc(realsz*size))
+      ffi.gc(self.__data, ffi.C.free)
       self.__size = size
    else
       self.__size = 0
@@ -15,24 +19,23 @@ local function rawInitWithSize(size)
 end
 
 function Storage.new(...)
-   local arg = {...}
-   local narg = #arg
+   local narg = select('#', ...)
    local self
    if narg == 0 then
       return rawInitWithSize(0)
-   elseif narg == 1 and type(arg[1]) == 'number' then
-      return rawInitWithSize(arg[1])
-   elseif narg == 1 and type(arg[1]) == 'table' then
-      local tbl = arg[1]
+   elseif narg == 1 and type(select(1, ...)) == 'number' then
+      return rawInitWithSize(select(1, ...))
+   elseif narg == 1 and type(select(1, ...)) == 'table' then
+      local tbl = select(1, ...)
       local size = #tbl
       self = rawInitWithSize(size)
       for i=1,size do
          self.__data[i-1] = tbl[i]
       end
-   elseif narg == 1 and type(arg[1]) == 'string' then
---      self = TH.THStorage_newWithMapping(arg[1], 0)[0]
-   elseif narg == 2 and type(arg[1]) == 'string' and type(arg[2]) == 'boolean' then
---      self = TH.THStorage_newWithMapping(arg[1], arg[2])[0]
+   elseif narg == 1 and type(select(1, ...)) == 'string' then
+--      self = TH.THStorage_newWithMapping(select(1, ...), 0)[0]
+   elseif narg == 2 and type(select(1, ...)) == 'string' and type(select(2, ...)) == 'boolean' then
+--      self = TH.THStorage_newWithMapping(select(1, ...), select(2, ...))[0]
    else
       error('invalid arguments')
    end
@@ -52,14 +55,20 @@ end
 
 function Storage:resize(size)
    if size > 0 and size > self.__size then
-      self.__data = ffi.new("real[?]", size)
+      if self.__data then
+         ffi.gc(self.__data, nil)
+      end
+      self.__data = ffi.cast(realptrct,
+                             ffi.C.realloc(self.__data, realsz*size)
+                          )
+      ffi.gc(self.__data, ffi.C.free)
       self.__size = size
    end
    return self
 end
 
 function Storage:rawCopy(data)
-   ffi.copy(self.__data, data, ffi.sizeof('real')*self.__size)
+   ffi.copy(self.__data, data, realsz*self.__size)
    return self
 end
 

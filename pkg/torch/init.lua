@@ -1,6 +1,13 @@
 local ffi = require 'ffi'
 require "paths"
 
+ffi.cdef[[
+void free(void *ptr);
+void *malloc(size_t size);
+void *realloc(void *ptr, size_t size);
+]]
+
+
 -- torch is global for now [due to getmetatable()]
 torch = {}
 
@@ -17,11 +24,11 @@ end
 
 local luatype = type
 function type(arg)
-   local flag, type = pcall(function(arg) return arg.__typename end, arg)
-   if flag and type then
-      return type
+   local tname = luatype(arg)
+   if tname == 'table' then
+      return arg.__typename or tname
    end
-   return luatype(arg)
+   return tname
 end
 
 torch.typename = type -- backward compatibility... keep it or not?
