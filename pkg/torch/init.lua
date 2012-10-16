@@ -122,5 +122,6 @@ setmetatable(env, {__index=_G})
 include('Timer.lua', env)
 includetemplate('Storage.lua', env)
 includetemplate('Tensor.lua', env)
+include('iterator.lua', env)
 
 return torch
