@@ -123,6 +123,7 @@ include('Timer.lua', env)
 includetemplate('Storage.lua', env)
 includetemplate('Tensor.lua', env)
 include('apply.lua', env)
+include('dimapply.lua', env)
 include('iterator.lua', env)
 
 return torch
