@@ -257,6 +257,10 @@ function Tensor:resize(...)
    rawResize(self, size.__size, size.__data, stride and stride.__data or nil)
 end
 
+function Tensor:resizeAs(src)
+   rawResize(self, src.__nDimension, src.__size, nil)
+end
+
 function Tensor:narrow(...)
    local narg = select('#', ...)
    local src, dimension, firstIndex, size
