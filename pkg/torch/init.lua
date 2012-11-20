@@ -5,6 +5,7 @@ ffi.cdef[[
 void free(void *ptr);
 void *malloc(size_t size);
 void *realloc(void *ptr, size_t size);
+typedef unsigned char byte;
 ]]
 
 
@@ -99,10 +100,14 @@ local function includetemplate(file, env)
    local f = io.open(filename)
    local txt = f:read('*all')
    f:close()
-   local types = {char='Char', short='Short', int='Int', long='Long', float='Float', double='Double'}
-   types['unsigned char'] = 'Byte'
-   for real,Real in pairs(types) do
+   local types = {'byte', 'char', 'short', 'int', 'long', 'float', 'double'}
+   local Types = {'Byte', 'Char', 'Short', 'Int', 'Long', 'Float', 'Double'}
+   local taccs = {'long', 'long', 'long', 'long', 'long', 'double', 'double'}
+
+   for i=1,#types do
+      local real, Real, accreal = types[i], Types[i], taccs[i]
       local txt = txt:gsub('([%p%s])real([%p%s])', '%1' .. real .. '%2')
+      local txt = txt:gsub('([%p%s])accreal([%p%s])', '%1' .. accreal .. '%2')
       txt = txt:gsub('([%p%s])Storage([%p%s])', '%1' .. Real .. 'Storage' .. '%2')
       txt = txt:gsub('([%p%s])Tensor([%p%s])', '%1' .. Real .. 'Tensor' .. '%2')
       local code, err = loadstring(txt, filename)
@@ -127,5 +132,6 @@ includetemplate('Tensor.lua', env)
 include('apply.lua', env)
 include('dimapply.lua', env)
 include('iterator.lua', env)
+includetemplate('maths.lua', env)
 
 return torch
