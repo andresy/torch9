@@ -161,3 +161,98 @@ float norm_float(float *x, long strx, long sz, float n, int dopow)
   else
     return (float)sum;
 }
+
+void add_float(float *y, long stry, float *x, long strx, long sz, float value)
+{
+  long i;
+  for(i = 0; i < sz; i++)
+    y[i*stry] = x[i*strx] + value;
+}
+
+void cadd_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz, float value)
+{
+  long i;
+  for(i = 0; i < sz; i++)
+    z[i*strz] = x[i*strx] + value*y[i*stry];
+}
+
+void mul_float(float *y, long stry, float *x, long strx, long sz, float value)
+{
+  long i;
+  for(i = 0; i < sz; i++)
+    y[i*stry] = x[i*strx] * value;
+}
+
+void cmul_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz)
+{
+  long i;
+  for(i = 0; i < sz; i++)
+    z[i*strz] = x[i*strx] * y[i*stry];
+}
+
+void div_float(float *y, long stry, float *x, long strx, long sz, float value)
+{
+  long i;
+  for(i = 0; i < sz; i++)
+    y[i*stry] = x[i*strx] / value;
+}
+
+void cdiv_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz)
+{
+  long i;
+  for(i = 0; i < sz; i++)
+    z[i*strz] = x[i*strx] / y[i*stry];
+}
+
+void addcmul_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz, float value)
+{
+  long i;
+  for(i = 0; i < sz; i++)
+    z[i*strz] += value * x[i*strx] * y[i*stry];
+}
+
+void addcdiv_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz, float value)
+{
+  long i;
+  for(i = 0; i < sz; i++)
+    z[i*strz] += value * x[i*strx] / y[i*stry];
+}
+
+#define BASIC_FUNC(NAME)                                                \
+  void NAME##_float(float *y, long stry, float *x, long strx, long sz)  \
+  {                                                                     \
+    long i;                                                             \
+    for(i = 0; i < sz; i++)                                             \
+      y[i] = NAME(x[i]);                                                \
+  }                                                                     \
+
+
+BASIC_FUNC(log)
+BASIC_FUNC(log1p)
+BASIC_FUNC(exp)
+BASIC_FUNC(cos)
+BASIC_FUNC(acos)
+BASIC_FUNC(cosh)
+BASIC_FUNC(sin)
+BASIC_FUNC(asin)
+BASIC_FUNC(sinh)
+BASIC_FUNC(tan)
+BASIC_FUNC(atan)
+BASIC_FUNC(tanh)
+BASIC_FUNC(sqrt)
+BASIC_FUNC(ceil)
+BASIC_FUNC(floor)
+
+void abs_float(float *y, long stry, float *x, long strx, long sz)
+{
+  long i;
+  for(i = 0; i < sz; i++)
+    y[i] = fabs(x[i]);
+}
+
+void pow_float(float *y, long stry, float *x, long strx, long sz, float value)
+{
+  long i;
+  for(i = 0; i < sz; i++)
+    y[i] = pow(x[i], value);
+}

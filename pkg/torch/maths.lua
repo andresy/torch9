@@ -13,6 +13,14 @@ ffi.cdef[[
       void cumprod_float(float *cumprod, long cumprodst, long cumprodsz, float *x, long strx, long sz);
       float sum2_float(float *x, long strx, long sz);
       void sum_sum2_float(float *sum_, float *sum2_, float *x, long strx, long sz);
+      void add_float(float *y, long stry, float *x, long strx, long sz, float value);
+      void cadd_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz, float value);
+      void mul_float(float *y, long stry, float *x, long strx, long sz, float value);
+      void cmul_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz);
+      void div_float(float *y, long stry, float *x, long strx, long sz, float value);
+      void cdiv_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz);
+      void addcmul_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz, float value);
+      void addcdiv_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz, float value);
 ]]
 
 local th = ffi.load(paths.concat(paths.install_lua_path,
@@ -319,8 +327,143 @@ torch.Tensor.var =
                return dst
             end}
 
+-- warning: should have a different one for the method
+torch.Tensor.add =
+   argcheck{{{name="dst", type="torch.Tensor", default=true},
+             {name="src", type="torch.Tensor"},
+             {name="value", type="number"}},
+             function(dst, src, value)
+                dst:resizeAs(src)
+                torch.apply2(dst, src, function(y, stry, x, strx, sz)
+                                          th.add_real(y, stry, x, strx, sz, value)
+                                       end)
+                return dst
+             end,
+
+             {{name="dst", type="torch.Tensor", default=true},
+              {name="src1", type="torch.Tensor"},
+              {name="value", type="number", default=1},
+              {name="src2", type="torch.Tensor"}},
+             function(dst, src1, value, src2)
+                dst:resizeAs(src1)
+                torch.apply3(dst, src1, src2, function(dst, dstst, src1, src1st, src2, src2st, sz)
+                                                 th.cadd_real(dst, dstst, src1, src1st, src2, src2st, sz, value)
+                                              end)
+                return dst
+             end}
+
+torch.Tensor.mul =
+   argcheck{{{name="dst", type="torch.Tensor", default=true},
+             {name="src", type="torch.Tensor"},
+             {name="value", type="number"}},
+            function(dst, src, value)
+               dst:resizeAs(src)
+               torch.apply2(dst, src, function(y, stry, x, strx, sz)
+                                         th.mul_real(y, stry, x, strx, sz, value)
+                                      end)
+               return dst
+            end}
+
+torch.Tensor.cmul = 
+   argcheck{{{name="dst", type="torch.Tensor", default=true},
+             {name="src1", type="torch.Tensor"},
+             {name="src2", type="torch.Tensor"}},
+            function(dst, src1, src2)
+               dst:resizeAs(src1)
+               torch.apply3(dst, src1, src2, th.cmul_real)
+               return dst
+            end}
+
+
+torch.Tensor.div =
+   argcheck{{{name="dst", type="torch.Tensor", default=true},
+             {name="src", type="torch.Tensor"},
+             {name="value", type="number"}},
+             function(dst, src, value)
+                dst:resizeAs(src)
+                torch.apply2(dst, src, function(y, stry, x, strx, sz)
+                                          th.div_real(y, stry, x, strx, sz, value)
+                                       end)
+                return dst
+             end}
+
+torch.Tensor.cdiv = 
+   argcheck{{{name="dst", type="torch.Tensor", default=true},
+             {name="src1", type="torch.Tensor"},
+             {name="src2", type="torch.Tensor"}},
+             function(dst, src1, src2)
+                dst:resizeAs(src1)
+                torch.apply3(dst, src1, src2, th.cdiv_real)
+                return dst
+             end}
+
+torch.Tensor.addcmul = 
+   argcheck{{{name="dst", type="torch.Tensor"},
+             {name="value", type="number", default=1},
+             {name="src1", type="torch.Tensor"},
+             {name="src2", type="torch.Tensor"}},
+             function(dst, value, src1, src2)
+                dst:resizeAs(src1)
+                torch.apply3(dst, src1, src2, function(dst, dstst, src1, src1st, src2, src2st, sz)
+                                                 th.addcmul_real(dst, dstst, src1, src1st, src2, src2st, sz, value)
+                                              end)
+                return dst
+             end}
+
+torch.Tensor.addcdiv = 
+   argcheck{{{name="dst", type="torch.Tensor"},
+             {name="value", type="number", default=1},
+             {name="src1", type="torch.Tensor"},
+             {name="src2", type="torch.Tensor"}},
+             function(dst, value, src1, src2)
+                dst:resizeAs(src1)
+                torch.apply3(dst, src1, src2, function(dst, dstst, src1, src1st, src2, src2st, sz)
+                                                 th.addcdiv_real(dst, dstst, src1, src1st, src2, src2st, sz, value)
+                                              end)
+                return dst
+             end}
+
+torch.Tensor.trace =
+   argcheck({{name="src", type="torch.Tensor", dim=2}},
+            function(src)
+               return th.sum_float(src:data(),
+                                   src:stride(1)+src:stride(2),
+                                   math.min(src:size(1), src:size(2)))
+            end)
+
 torch.Tensor.zeros =
    argcheck({{name="size", type="numbers"}},
             function(size)
                print(size)
+            end)
+
+for _,name in ipairs{'log', 'log1p', 'exp', 'cos', 'acos', 'cosh', 'sin', 'asin',
+                     'sinh', 'tan', 'atan', 'tanh', 'sqrt', 'ceil', 'floor', 'abs'} do
+
+   ffi.cdef(string.format('void %s_float(float *y, long stry, float *x, long strx, long sz);', name)) -- DEBUG: see below
+
+   local func = th[name .. '_float'] -- DEBUG: *MUST* be real here, but i did not defined them yet ;)
+   torch.Tensor[name] =
+      argcheck({{name="dst", type="torch.Tensor", default=true},
+                {name="src", type="torch.Tensor"}},
+               function(dst, src)
+                  dst:resizeAs(src)
+                  torch.apply2(dst, src, func)
+                  return dst
+            end)
+
+end
+
+ffi.cdef('void pow_float(float *y, long stry, float *x, long strx, long sz, float value);')
+
+torch.Tensor.pow =
+   argcheck({{name="dst", type="torch.Tensor", default=true},
+             {name="src", type="torch.Tensor"},
+             {name="value", type="number"}},
+            function(dst, src, value)
+               dst:resizeAs(src)
+               torch.apply2(dst, src, function(dst, dstst, src, srcst, sz)
+                                         th.pow_real(dst, dstst, src, srcst, sz, value)
+                                      end)
+               return dst
             end)
