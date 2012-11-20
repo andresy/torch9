@@ -103,3 +103,19 @@ function torch.apply2(t1, t2, func)
    local applyfunc = apply2func[tonumber(t1.__nDimension)][tonumber(t2.__nDimension)]
    applyfunc(t1, t2, func)
 end
+
+local apply3func = {}
+for i=0,10 do
+   apply3func[i] = {}
+   for j=1,10 do
+      apply3func[i][j] = {}
+      for k=1,10 do
+         apply3func[i][j][k] = loadstring(generate_apply({i,j,k}))()
+      end
+   end
+end
+
+function torch.apply3(t1, t2, t3, func)
+   local applyfunc = apply3func[tonumber(t1.__nDimension)][tonumber(t2.__nDimension)][tonumber(t3.__nDimension)]
+   applyfunc(t1, t2, t3, func)
+end
