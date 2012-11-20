@@ -123,7 +123,7 @@ end
 
 function Tensor:data()
   if self.__storage then
-     return self.__storage.data+self.__storageOffset
+     return self.__storage.__data+self.__storageOffset
   else
     return nil
   end
