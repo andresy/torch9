@@ -3,6 +3,14 @@ local mt
 
 local longvlact = ffi.typeof('long[?]')
 
+local function carray2table(arr, size)
+   local tbl = {}
+   for i=1,size do
+      tbl[i] = arr[i-1]
+   end
+   return tbl
+end
+
 local function rawInit()
    local self = {}
    self.__storageOffset = 0
@@ -141,104 +149,103 @@ end
 
 -- creation
 
--- checkout http://www.torch.ch/manual/torch/tensor
-local function readtensorsizestride(...)
-   local storage
-   local offset
-   local size
-   local stride
-   local narg = select('#', ...)
+-- -- checkout http://www.torch.ch/manual/torch/tensor
+-- local function readtensorsizestride(...)
+--    local storage
+--    local offset
+--    local size
+--    local stride
+--    local narg = select('#', ...)
 
-   if narg == 0 then
-      return nil, 0, nil, nil
-   elseif narg == 1 and type(select(1, ...)) == 'number' then
-      return nil, 0, torch.LongStorage{select(1, ...)}, nil
-   elseif narg == 1 and type(select(1, ...)) == 'table' then
-      error('not implemented yet')
-      -- todo
-   elseif narg == 1 and type(select(1, ...)) == 'torch.LongStorage' then
-      return nil, 0, select(1, ...), nil
-   elseif narg == 1 and type(select(1, ...)) == 'torch.Storage' then
-      return select(1, ...), 0, nil, nil
-   elseif narg == 1 and type(select(1, ...)) == 'torch.Tensor' then
-      return select(1, ...):storage(), select(1, ...):storageOffset(), select(1, ...):size(), select(1, ...):stride()
-   elseif narg == 2 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' then
-      return nil, 0, torch.LongStorage{select(1, ...), select(2, ...)}, nil
-   elseif narg == 2 and type(select(1, ...)) == 'torch.LongStorage' and type(select(2, ...)) == 'torch.LongStorage' then
-      return nil, 0, select(1, ...), select(2, ...)
-   elseif narg == 3 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' then
-      return nil, 0, torch.LongStorage{select(1, ...), select(2, ...), select(3, ...)}
-   elseif narg == 3 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'torch.LongStorage' then
-      return select(1, ...), select(2, ...), select(3, ...), nil
-   elseif narg == 3 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' then
-      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...)}, nil
-   elseif narg == 4 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' then
-      return nil, 0, torch.LongStorage{select(1, ...), select(2, ...), select(3, ...), select(4, ...)}
-   elseif narg == 4 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'torch.LongStorage' and type(select(4, ...)) == 'torch.LongStorage' then
-      return select(1, ...), select(2, ...), select(3, ...), select(4, ...)
-   elseif narg == 4 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' then
-      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...)}, torch.LongStorage{select(4, ...)}
-   elseif narg == 5 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' then
-      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...)}, torch.LongStorage{select(4, ...)}
-   elseif narg == 6 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' then
-      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...)}, torch.LongStorage{select(4, ...), select(6, ...)}
-   elseif narg == 7 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' then
-      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...)}, torch.LongStorage{select(4, ...), select(6, ...)}
-   elseif narg == 8 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' then
-      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...)}
-   elseif narg == 9 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' and type(select(9, ...)) == 'number' then
-      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...), select(9, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...)}
-   elseif narg == 10 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' and type(select(9, ...)) == 'number' and type(select(10, ...)) == 'number' then
-      return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...), select(9, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...), select(10, ...)}
-   else
-      error('invalid arguments')
-   end
-end
+--    if narg == 0 then
+--       return nil, 0, nil, nil
+--    elseif narg == 1 and type(select(1, ...)) == 'number' then
+--       return nil, 0, torch.LongStorage{select(1, ...)}, nil
+--    elseif narg == 1 and type(select(1, ...)) == 'table' then
+--       error('not implemented yet')
+--       -- todo
+--    elseif narg == 1 and type(select(1, ...)) == 'torch.LongStorage' then
+--       return nil, 0, select(1, ...), nil
+--    elseif narg == 1 and type(select(1, ...)) == 'torch.Storage' then
+--       return select(1, ...), 0, nil, nil
+--    elseif narg == 1 and type(select(1, ...)) == 'torch.Tensor' then
+--       return select(1, ...):storage(), select(1, ...):storageOffset(), select(1, ...):size(), select(1, ...):stride()
+--    elseif narg == 2 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' then
+--       return nil, 0, torch.LongStorage{select(1, ...), select(2, ...)}, nil
+--    elseif narg == 2 and type(select(1, ...)) == 'torch.LongStorage' and type(select(2, ...)) == 'torch.LongStorage' then
+--       return nil, 0, select(1, ...), select(2, ...)
+--    elseif narg == 3 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' then
+--       return nil, 0, torch.LongStorage{select(1, ...), select(2, ...), select(3, ...)}
+--    elseif narg == 3 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'torch.LongStorage' then
+--       return select(1, ...), select(2, ...), select(3, ...), nil
+--    elseif narg == 3 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' then
+--       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...)}, nil
+--    elseif narg == 4 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' then
+--       return nil, 0, torch.LongStorage{select(1, ...), select(2, ...), select(3, ...), select(4, ...)}
+--    elseif narg == 4 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'torch.LongStorage' and type(select(4, ...)) == 'torch.LongStorage' then
+--       return select(1, ...), select(2, ...), select(3, ...), select(4, ...)
+--    elseif narg == 4 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' then
+--       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...)}, torch.LongStorage{select(4, ...)}
+--    elseif narg == 5 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' then
+--       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...)}, torch.LongStorage{select(4, ...)}
+--    elseif narg == 6 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' then
+--       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...)}, torch.LongStorage{select(4, ...), select(6, ...)}
+--    elseif narg == 7 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' then
+--       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...)}, torch.LongStorage{select(4, ...), select(6, ...)}
+--    elseif narg == 8 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' then
+--       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...)}
+--    elseif narg == 9 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' and type(select(9, ...)) == 'number' then
+--       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...), select(9, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...)}
+--    elseif narg == 10 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' and type(select(9, ...)) == 'number' and type(select(10, ...)) == 'number' then
+--       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...), select(9, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...), select(10, ...)}
+--    else
+--       error('invalid arguments')
+--    end
+-- end
 
-local function readsizestride(...)
-   local size
-   local stride
-   local narg = select('#', ...)
-
-   if narg == 1 and type(select(1, ...)) == 'number' then
-      return torch.LongStorage{select(1, ...)}, nil
-   elseif narg == 1 and type(select(1, ...)) == 'table' then
-      return torch.LongStorage(select(1, ...)), nil
-   elseif narg == 1 and type(select(1, ...)) == 'torch.LongStorage' then
-      return select(1, ...), nil
-   elseif narg == 2 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' then
-      return torch.LongStorage{select(1, ...), select(2, ...)}, nil
-   elseif narg == 2 and type(select(1, ...)) == 'table' and type(select(2, ...)) == 'table' then
-      return torch.LongStorage(select(1, ...)), torch.LongStorage(select(2, ...))
-   elseif narg == 2 and type(select(1, ...)) == 'torch.LongStorage' and type(select(2, ...)) == 'torch.LongStorage' then
-      return select(1, ...), select(2, ...)
-   elseif narg == 3 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' then
-      return torch.LongStorage{select(1, ...), select(2, ...), select(3, ...)}, nil
-   elseif narg == 4 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' then
-      return torch.LongStorage{select(1, ...), select(2, ...), select(3, ...), select(4, ...)}, nil
-   else
-      error('invalid arguments')
-   end
-end
-
-function Tensor.new(...)
-   local storage, storageOffset, size, stride = readtensorsizestride(...)
-
+local function new(storage, storageOffset, size, stride)
    local self = rawInit()
+   local dim = size and #size or 0
+
+   storageOffset = storageOffset or 0
 
    if size and stride then
-      assert(size.__size == stride.__size, 'inconsistent size')
+      assert(dim == #stride, 'inconsistent size/stride sizes')
    end
 
    rawSet(self,
           storage,
           storageOffset,
-          size and size.__size or (stride and stride.__size or 0),
-          size and size.__data or nil,
-          stride and stride.__data or nil)
+          dim,
+          size and longvlact(dim, size) or nil,
+          stride and longvlact(dim, stride) or nil)
 
    return self
 end
+
+Tensor.new = argcheck{
+   {},
+   new,
+
+   {{name='storage', type='torch.Storage'},
+    {name='storageOffset', type='number', default=0},
+    {name='size', type='numbers', vararg=false, opt=true},
+    {name='stride', type='numbers', vararg=false, opt=true}},
+   new,
+
+   {{name='size', type='numbers'}}, -- lower priority than the data init
+   function(size)
+      return new(nil, nil, size, nil)
+   end,
+
+   {{name='tensor', type='torch.Tensor'}},
+   function(tensor)
+      return new(tensor.__storage,
+                 tensor.__storageOffset,
+                 carray2table(tensor.__size, tensor.__nDimension),
+                 carray2table(tensor.__stride, tensor.__nDimension))
+   end
+}
 
 function Tensor:set(src)
    if self ~= src then
@@ -252,10 +259,23 @@ function Tensor:set(src)
    return self
 end
 
-function Tensor:resize(...)
-   local size, stride = readsizestride(...)
-   rawResize(self, size.__size, size.__data, stride and stride.__data or nil)
-end
+Tensor.resize = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='size', type='numbers', vararg=false},
+    {name='stride', type='numbers', vararg=false}},
+   function(self, size, stride)
+      local dim = #size
+      assert(not stride or (#stride == dim), 'inconsistent size/stride sizes')
+      rawResize(self, dim, longvlact(dim, size), stride and longvlact(dim, stride))
+   end,
+
+   {{name='self', type='torch.Tensor'},
+    {name='size', type='numbers'}},
+   function(self, size)
+      local dim = #size
+      rawResize(self, dim, longvlact(dim, size))
+   end
+}
 
 function Tensor:resizeAs(src)
    rawResize(self, src.__nDimension, src.__size, nil)
