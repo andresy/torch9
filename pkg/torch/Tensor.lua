@@ -95,114 +95,84 @@ local function rawSet(self, storage, storageOffset, nDimension, size, stride)
 end
 
 -- access methods
-function Tensor:storage()
-  return self.__storage
-end
-
-function Tensor:storageOffset()
-  return self.__storageOffset + 1
-end
-
-function Tensor:nDimension()
-  return self.__nDimension
-end
-
-function Tensor:dim()
-  return self.__nDimension
-end
-
-function Tensor:size(dim)
-   if dim then
-      assert(dim > 0 and dim <= self.__nDimension, 'out of range')
-      return tonumber(self.__size[dim-1])
-   else
-      return torch.LongStorage(self.__nDimension):rawCopy(self.__size)
+Tensor.storage = argcheck{
+   {{name='self', type='torch.Tensor'}},
+   function(self)
+      return self.__storage
    end
-end
+}
 
-function Tensor:stride(dim)
-   if dim then
-      assert(dim > 0 and dim <= self.__nDimension, 'out of range')
-      return tonumber(self.__stride[dim-1])
-   else
-      return torch.LongStorage(self.__nDimension):rawCopy(self.__stride)
+Tensor.storageOffset= argcheck{
+   {{name='self', type='torch.Tensor'}},
+   function(self)
+      return self.__storageOffset
    end
-end
+}
+Tensor.offset = Tensor.storageOffset
 
-function Tensor:data()
-  if self.__storage then
-     return self.__storage.__data+self.__storageOffset
-  else
-    return nil
-  end
-end
+Tensor.nDimension= argcheck{
+   {{name='self', type='torch.Tensor'}},
+   function(self)
+      return self.__nDimension
+   end
+}
+Tensor.dim = Tensor.nDimension
 
-function Tensor:setFlag(flag)
-   self.__flag = bit.bor(self.__flag, flag)
-   return self
-end
+Tensor.size = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='dim', type='number', opt=true}},
+   function(self, dim)
+      if dim then
+         assert(dim > 0 and dim <= self.__nDimension, 'out of range')
+         return tonumber(self.__size[dim-1])
+      else
+         return carray2table(self.__size, self.__nDimension) -- DEBUG: 0-index inconsistency
+      end
+   end
+}
 
-function Tensor:clearFlag(flag)
-   self.__flag = bit.band(self.__flag, bit.bnot(flag))
-   return self
-end
+
+Tensor.stride = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='dim', type='number', opt=true}},
+   function(self, dim)
+      if dim then
+         assert(dim > 0 and dim <= self.__nDimension, 'out of range')
+         return tonumber(self.__stride[dim-1])
+      else
+         return carray2table(self.__stride, self.__nDimension) -- DEBUG: 0-index inconsistency
+      end
+   end
+}
+
+Tensor.data = argcheck{
+   {{name='self', type='torch.Tensor'}},
+   function(self)
+      if self.__storage then
+         return self.__storage.__data+self.__storageOffset
+      end
+   end
+}
+
+Tensor.setFlag = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='flag', type='number'}},
+   function(self, flag)
+      self.__flag = bit.bor(self.__flag, flag)
+      return self
+   end
+}
+
+Tensor.clearFlag = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='flag', type='number'}},
+   function(self, flag)
+      self.__flag = bit.band(self.__flag, bit.bnot(flag))
+      return self
+   end
+}
 
 -- creation
-
--- -- checkout http://www.torch.ch/manual/torch/tensor
--- local function readtensorsizestride(...)
---    local storage
---    local offset
---    local size
---    local stride
---    local narg = select('#', ...)
-
---    if narg == 0 then
---       return nil, 0, nil, nil
---    elseif narg == 1 and type(select(1, ...)) == 'number' then
---       return nil, 0, torch.LongStorage{select(1, ...)}, nil
---    elseif narg == 1 and type(select(1, ...)) == 'table' then
---       error('not implemented yet')
---       -- todo
---    elseif narg == 1 and type(select(1, ...)) == 'torch.LongStorage' then
---       return nil, 0, select(1, ...), nil
---    elseif narg == 1 and type(select(1, ...)) == 'torch.Storage' then
---       return select(1, ...), 0, nil, nil
---    elseif narg == 1 and type(select(1, ...)) == 'torch.Tensor' then
---       return select(1, ...):storage(), select(1, ...):storageOffset(), select(1, ...):size(), select(1, ...):stride()
---    elseif narg == 2 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' then
---       return nil, 0, torch.LongStorage{select(1, ...), select(2, ...)}, nil
---    elseif narg == 2 and type(select(1, ...)) == 'torch.LongStorage' and type(select(2, ...)) == 'torch.LongStorage' then
---       return nil, 0, select(1, ...), select(2, ...)
---    elseif narg == 3 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' then
---       return nil, 0, torch.LongStorage{select(1, ...), select(2, ...), select(3, ...)}
---    elseif narg == 3 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'torch.LongStorage' then
---       return select(1, ...), select(2, ...), select(3, ...), nil
---    elseif narg == 3 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' then
---       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...)}, nil
---    elseif narg == 4 and type(select(1, ...)) == 'number' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' then
---       return nil, 0, torch.LongStorage{select(1, ...), select(2, ...), select(3, ...), select(4, ...)}
---    elseif narg == 4 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number' and type(select(3, ...)) == 'torch.LongStorage' and type(select(4, ...)) == 'torch.LongStorage' then
---       return select(1, ...), select(2, ...), select(3, ...), select(4, ...)
---    elseif narg == 4 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' then
---       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...)}, torch.LongStorage{select(4, ...)}
---    elseif narg == 5 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' then
---       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...)}, torch.LongStorage{select(4, ...)}
---    elseif narg == 6 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' then
---       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...)}, torch.LongStorage{select(4, ...), select(6, ...)}
---    elseif narg == 7 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' then
---       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...)}, torch.LongStorage{select(4, ...), select(6, ...)}
---    elseif narg == 8 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' then
---       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...)}
---    elseif narg == 9 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' and type(select(9, ...)) == 'number' then
---       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...), select(9, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...)}
---    elseif narg == 10 and type(select(1, ...)) == 'torch.Storage' and type(select(2, ...)) == 'number'  and type(select(3, ...)) == 'number' and type(select(4, ...)) == 'number' and type(select(5, ...)) == 'number' and type(select(6, ...)) == 'number' and type(select(7, ...)) == 'number' and type(select(8, ...)) == 'number' and type(select(9, ...)) == 'number' and type(select(10, ...)) == 'number' then
---       return select(1, ...), select(2, ...), torch.LongStorage{select(3, ...), select(5, ...), select(7, ...), select(9, ...)}, torch.LongStorage{select(4, ...), select(6, ...), select(8, ...), select(10, ...)}
---    else
---       error('invalid arguments')
---    end
--- end
-
 local function new(storage, storageOffset, size, stride)
    local self = rawInit()
    local dim = size and #size or 0
@@ -247,17 +217,21 @@ Tensor.new = argcheck{
    end
 }
 
-function Tensor:set(src)
-   if self ~= src then
-      rawSet(self,
-             src.__storage,
-             src.__storageOffset,
-             src.__nDimension,
-             src.__size,
+Tensor.set = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='src', type='torch.Tensor'}},
+   function(self, src)
+      if self ~= src then
+         rawSet(self,
+                src.__storage,
+                src.__storageOffset,
+                src.__nDimension,
+                src.__size,
              src.__stride)
+      end
+      return self
    end
-   return self
-end
+}
 
 Tensor.resize = argcheck{
    {{name='self', type='torch.Tensor'},
@@ -277,216 +251,222 @@ Tensor.resize = argcheck{
    end
 }
 
-function Tensor:resizeAs(src)
-   rawResize(self, src.__nDimension, src.__size, nil)
-end
+Tensor.resizeAs = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='src', type='torch.Tensor'}},
+   function(self, src)
+      rawResize(self, src.__nDimension, src.__size, nil)
+      return self
+   end
+}
 
 Tensor.narrow = argcheck{
    {{name='self', type='torch.Tensor'},
-    {name='src', type='torch.Tensor', defaulta='self'},
+    {name='src', type='torch.Tensor', opt=true},
     {name='dim', type='number'},
     {name='idx', type='number'},
     {name='size', type='number'}},
    function(self, src, dim, idx, size)
-      self:set(src)
+      local dst = src and self or torch.Tensor()
+      src = src or self
+
+      dst:set(src)
 
       assert(dim >= 0 and dim < src.__nDimension, 'out of range')
       assert(idx >= 0 and idx < src.__size[dim], 'out of range')
       assert(size > 0 and idx+size <= src.__size[dim], 'out of range')
 
       if idx > 0 then
-         self.__storageOffset = self.__storageOffset + idx*self.__stride[dim];
+         dst.__storageOffset = dst.__storageOffset + idx*dst.__stride[dim];
       end
-      self.__size[dim] = size
+      dst.__size[dim] = size
 
-      return self
+      return dst
    end
 }
 
-function Tensor:select(...)
-   local narg = select('#', ...)
-   local src, dimension, sliceIndex
-   if narg == 2 then
-      self, src, dimension, sliceIndex = torch.Tensor(), self, select(1, ...)-1, select(2, ...)-1
-   elseif narg == 3 then
-      src, dimension, sliceIndex, size = select(1, ...), select(2, ...)-1, select(3, ...)-1
-   else
-      error('invalid arguments')
-   end
+Tensor.select = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='src', type='torch.Tensor', opt=true},
+    {name='dim', type='number'},
+    {name='idx', type='number'}},
+   function(self, src, dim, idx)
+      local dst = src and self or torch.Tensor()
+      src = src or self
 
-   assert(dimension >= 0 and dimension < src.__nDimension, 'out of range')
-   assert(sliceIndex >= 0 and sliceIndex < src.__size[dimension], 'out of range')
+      assert(dim >= 0 and dim < src.__nDimension, 'out of range')
+      assert(idx >= 0 and idx < src.__size[dim], 'out of range')
 
-   if self.__nDimension == 1 then
-      return tonumber( (self.__storage.__data + self.__storageOffset)[sliceIndex*self.__stride[0]] )
-   else
-      self:narrow(self, src, dimension, sliceIndex, 1)
-      for d=dimension,self.__nDimension-2 do
-         self.__size[d] = self.__size[d+1]
-         self.__stride[d] = self.__stride[d+1]
-      end
-      self.__nDimension = self.__nDimension -1
-   end
-
-   return self
-end
-
-function Tensor:transpose(...)
-   local narg = select('#', ...)
-   local src, dimension1, dimension2
-   if narg == 2 then
-      self, src, dimension1, dimension2 = torch.Tensor(), self, select(1, ...)-1, select(2, ...)-1
-   elseif narg == 3 then
-      src, dimension1, dimension2 = select(1, ...), select(2, ...)-1, select(3, ...)-1
-   else
-      error('invalid arguments')
-   end
-   self:set(src)
-
-   assert(dimension1 >= 0 and dimension1 < src.__nDimension, 'out of range')
-   assert(dimension2 >= 0 and dimension2 < src.__nDimension, 'out of range')
-
-
-   if dimension1 == dimension2 then
-      return self
-   end
- 
-   local z = self.__stride[dimension1]
-   self.__stride[dimension1] = self.__stride[dimension2]
-   self.__stride[dimension2] = z
-   z = self.__size[dimension1]
-   self.__size[dimension1] = self.__size[dimension2]
-   self.__size[dimension2] = z
-
-   return self
-end
-
-function Tensor:unfold(...)
-   local narg = select('#', ...)
-   local src, dimension, size, step
-   if narg == 3 then
-      self, src, dimension, size, step = torch.Tensor(), self, select(1, ...)-1, select(2, ...), select(3, ...)
-   elseif narg == 4 then
-      self, src, dimension, size, step = self, select(1, ...), select(2, ...)-1, select(3, ...), select(4, ...)
-   else
-      error('invalid arguments')
-   end
-   self:set(src)
-
-   assert(src.__nDimension > 0, "cannot unfold an empty tensor")
-   assert(dimension < src.__nDimension, "out of range")
-   assert(size <= src.__size[dimension], "out of range")
-   assert(step > 0, "invalid step")
-
-
-   local newSize = longvlact(self.__nDimension+1)
-   local newStride = longvlact(self.__nDimension+1)
-
-   newSize[self.__nDimension] = size
-   newStride[self.__nDimension] = self.__stride[dimension]
-   for d=0,self.__nDimension-1 do
-      if d == dimension then
-         newSize[d] = math.floor((self.__size[d] - size) / step) + 1
-         newStride[d] = step*self.__stride[d]
+      if src.__nDimension == 1 then
+         return tonumber( (src.__storage.__data + src.__storageOffset)[idx*self.__stride[0]] )
       else
-         newSize[d] = self.__size[d]
-         newStride[d] = self.__stride[d]
-      end
-   end
-
-   self.__size = newSize
-   self.__stride = newStride
-   self.__nDimension = self.__nDimension + 1
-
-   return self
-end
-
-function Tensor:squeeze(...)
-   local narg = select('#', ...)
-   local src
-   if narg == 0 then
-      self, src = torch.Tensor(), self
-   elseif narg == 1 then
-      src = select(1, ...)
-   else
-      error('invalid arguments')
-   end
-   self:set(src)
-
-   -- return nothing if tensor is empty!
-   if self.__nDimension == 0 then
-      return
-   end
-
-   local ndim = 0
-   for d=0,src.__nDimension-1 do
-      if src.__size[d] ~= 1 then
-         if d ~= ndim then
-            self.__size[ndim] = src.__size[d]
-            self.__stride[ndim] = src.__stride[d]
+         self:narrow(dst, src, dim, idx, 1)
+         for d=dim,self.__nDimension-2 do
+            dst.__size[d] = dst.__size[d+1]
+            dst.__stride[d] = dst.__stride[d+1]
          end
-         ndim = ndim + 1
+         dst.__nDimension = dst.__nDimension -1
       end
+
+      return dst
    end
+}
 
-   --- handle 0-dimension tensors
-   if ndim == 0 then
-      return tonumber( (self.__storage.__data + self.__storageOffset)[0] )
+Tensor.transpose = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='src', type='torch.Tensor', opt=true},
+    {name='dim1', type='number'},
+    {name='dim2', type='number'}},
+   function(self, src, dim1, dim2)
+      local dst = src and self or torch.Tensor()
+      src = src or self
+      dst:set(src)
+
+      assert(dim1 >= 0 and dim1 < src.__nDimension, 'out of range')
+      assert(dim2 >= 0 and dim2 < src.__nDimension, 'out of range')
+
+      if dim1 == dim2 then
+         return dst
+      end
+
+      local z = dst.__stride[dim1]
+      dst.__stride[dim1] = dst.__stride[dim2]
+      dst.__stride[dim2] = z
+      z = dst.__size[dim1]
+      dst.__size[dim1] = dst.__size[dim2]
+      dst.__size[dim2] = z
+
+      return dst
    end
-   self.__nDimension = ndim
+}
 
-   return self
-end
+Tensor.unfold = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='src', type='torch.Tensor', opt=true},
+    {name='dim', type='number'},
+    {name='size', type='number'},
+    {name='step', type='number'}},
+   function(self, src, dim, size, step)
+      local dst = src and self or torch.Tensor()
+      src = src or self
+      dst:set(src)
 
-function Tensor:squeeze1d(...)
-   local narg = select('#', ...)
-   local src, dimension
-   if narg == 1 then
-      src, dimension = self, select(1, ...)-1
-   else
-      src, dimension = select(1, ...), select(2, ...)-1
-   end
+      assert(src.__nDimension > 0, "cannot unfold an empty tensor")
+      assert(dim < src.__nDimension, "out of range")
+      assert(size <= src.__size[dim], "out of range")
+      assert(step > 0, "invalid step")
 
-  assert(dimension < src.__nDimension, "dimension out of range")
+      local newSize = longvlact(dst.__nDimension+1)
+      local newStride = longvlact(dst.__nDimension+1)
 
-  self:set(src)
-
-  if src.__size[dimension] == 1 and src.__nDimension > 1 then
-     for d=dimension,self.__nDimension-2 do
-        self.__size[d] = self.__size[d+1]
-        self.__stride[d] = self.__stride[d+1]
-     end
-     self.__nDimension = self.__nDimension - 1
-  end
-
-  return self
-end
-
-function Tensor:isContiguous()
-  local z = 1
-   for d=self.__nDimension-1,0,-1 do
-      if self.__size[d] ~= 1 then
-         if self.__stride[d] == z then
-            z = z * self.__size[d]
+      newSize[dst.__nDimension] = size
+      newStride[dst.__nDimension] = dst.__stride[dim]
+      for d=0,dst.__nDimension-1 do
+         if d == dim then
+            newSize[d] = math.floor((dst.__size[d] - size) / step) + 1
+            newStride[d] = step*dst.__stride[d]
          else
-            return false
+            newSize[d] = dst.__size[d]
+            newStride[d] = dst.__stride[d]
          end
       end
-   end
-   return true
-end
 
-function Tensor:nElement()
-   if self.__nDimension == 0 then
-      return 0
-   else
-      local nElement = 1;
-      for d=0,self.__nDimension-1 do
-         nElement = nElement*self.__size[d]
-      end
-      return tonumber(nElement)
+      dst.__size = newSize
+      dst.__stride = newStride
+      dst.__nDimension = dst.__nDimension + 1
+
+      return dst
    end
-end
+}
+
+Tensor.squeeze = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='src', type='torch.Tensor', opt=true}},
+   function(self, src)
+      local dst = src and self or torch.Tensor()
+      src = src or self
+      dst:set(src)
+
+      -- return nothing if tensor is empty!
+      if dst.__nDimension == 0 then
+         return
+      end
+
+      local ndim = 0
+      for d=0,src.__nDimension-1 do
+         if src.__size[d] ~= 1 then
+            if d ~= ndim then
+               dst.__size[ndim] = src.__size[d]
+               dst.__stride[ndim] = src.__stride[d]
+            end
+            ndim = ndim + 1
+         end
+      end
+
+      --- handle 0-dimension tensors
+      if ndim == 0 then
+         return tonumber( (dst.__storage.__data + dst.__storageOffset)[0] )
+      end
+      dst.__nDimension = ndim
+
+      return dst
+   end
+}
+
+Tensor.squeeze1d = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='src', type='torch.Tensor', opt=true},
+    {name='dim', type='number'}},
+   function(self, src, dim)
+      local dst = src and self or torch.Tensor()
+      src = src or self
+      dst:set(src)
+
+      assert(dim < src.__nDimension, "dimension out of range")
+
+      dst:set(src)
+      if src.__size[dim] == 1 and src.__nDimension > 1 then
+         for d=dimension,dst.__nDimension-2 do
+            dst.__size[d] = dst.__size[d+1]
+            dst.__stride[d] = dst.__stride[d+1]
+         end
+         dst.__nDimension = dst.__nDimension - 1
+      end
+      return dst
+   end
+}
+
+Tensor.isContiguous = argcheck{
+   {{name='self', type='torch.Tensor'}},
+   function(self)
+      local z = 1
+      for d=self.__nDimension-1,0,-1 do
+         if self.__size[d] ~= 1 then
+            if self.__stride[d] == z then
+               z = z * self.__size[d]
+            else
+               return false
+            end
+         end
+      end
+      return true
+   end
+}
+
+Tensor.nElement = argcheck{
+   {{name='self', type='torch.Tensor'}},
+   function(self)
+      if self.__nDimension == 0 then
+         return 0
+      else
+         local nElement = 1;
+         for d=0,self.__nDimension-1 do
+            nElement = nElement*self.__size[d]
+         end
+         return tonumber(nElement)
+      end
+   end
+}
 
 mt = {__index=function(self, k)
                  if type(k) == 'number' then
