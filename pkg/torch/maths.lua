@@ -431,12 +431,6 @@ torch.Tensor.trace =
                                    math.min(src:size(1), src:size(2)))
             end)
 
-torch.Tensor.zeros =
-   argcheck({{name="size", type="numbers"}},
-            function(size)
-               print(size)
-            end)
-
 for _,name in ipairs{'log', 'log1p', 'exp', 'cos', 'acos', 'cosh', 'sin', 'asin',
                      'sinh', 'tan', 'atan', 'tanh', 'sqrt', 'ceil', 'floor', 'abs'} do
 
@@ -465,5 +459,13 @@ torch.Tensor.pow =
                torch.apply2(dst, src, function(dst, dstst, src, srcst, sz)
                                          th.pow_real(dst, dstst, src, srcst, sz, value)
                                       end)
+               return dst
+            end)
+
+torch.Tensor.zeros =
+   argcheck({{name="size", type="numbers"}},
+            function(size)
+               local dst = torch.Tensor(size)
+               dst:zero()
                return dst
             end)
