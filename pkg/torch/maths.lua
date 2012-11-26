@@ -3,6 +3,7 @@ local ffi = require 'ffi'
 ffi.cdef[[
       void zero_float(float *x, long str, long sz);
       void fill_float(float *x, long str, long sz, float value);
+      void copy_float(float *y, long stry, float *x, long strx, long sz);
       float dot_float(float *x, long strx, float *y, long stry, long sz);
       void min_float(float *min_, long *idx_, float *x, long strx, long sz);
       void max_float(float *max_, long *idx_, float *x, long strx, long sz);
@@ -463,9 +464,51 @@ torch.Tensor.pow =
             end)
 
 torch.Tensor.zeros =
-   argcheck({{name="size", type="numbers"}},
-            function(size)
-               local dst = torch.Tensor(size)
+   argcheck({{name="dst", type='torch.Tensor', default=true},
+             {name="size", type="numbers"}},
+            function(dst, size)
+               dst:resize(size)
                dst:zero()
                return dst
             end)
+
+torch.Tensor.ones =
+   argcheck({{name="dst", type='torch.Tensor', default=true},
+             {name="size", type="numbers"}},
+            function(dst, size)
+               dst:resize(size)
+               dst:fill(1)
+               return dst
+            end)
+
+torch.Tensor.diag = argcheck{
+   {{name="dst", type='torch.Tensor', default=true},
+    {name="src", type='torch.Tensor'},
+    {name="k", type='number', default=0}},
+   function(dst, src)
+      assert(src.__nDimension == 1 or src.__nDimension == 2, "matrix or vector expected")
+      if src.__nDimension == 1 then
+         local sz = src.__size[0] + (k >= 0 and k or -k)
+         dst:resize(sz, sz):zero()
+         th.copy(dst:data() + (k >= 0 and k*dst.__stride[1] or -k*dst.__stride[0]),
+                 dst.__stride[0]+dst.__stride[1],
+                 src:data(),
+                 src.__stride[0],
+                 sz)
+      else
+         local sz
+         if k >= 0 then
+            sz = math.min(src.__size[0], src.__size[1]-k)
+         else
+            sz = math.min(src.__size[0]+k, src.__size[1])
+         end
+         dst:resize(sz)
+         th.copy(dst:data(),
+                 dst.__stride[0],
+                 src:data() + (k >= 0 and k*src.__stride[1] or -k*src.__stride[0]),
+                 src.__stride[0]+src.__stride[1],
+                 sz)
+      end
+      return dst
+   end
+}
