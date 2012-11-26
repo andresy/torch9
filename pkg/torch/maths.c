@@ -21,6 +21,14 @@ void fill_float(float *x, long str, long sz, float value)
     x[i*str] = value;
 }
 
+void copy_float(float *y, long stry, float *x, long strx, long sz)
+{
+  long i;
+
+  for(i = 0; i < sz; i++)
+    y[i*stry] = x[i*strx];
+}
+
 float dot_float(float *x, long strx, float *y, long stry, long sz)
 {
   long i;
