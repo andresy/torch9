@@ -281,30 +281,27 @@ function Tensor:resizeAs(src)
    rawResize(self, src.__nDimension, src.__size, nil)
 end
 
-function Tensor:narrow(...)
-   local narg = select('#', ...)
-   local src, dimension, firstIndex, size
-   if narg == 3 then
-      self, src, dimension, firstIndex, size = torch.Tensor(), self, select(1, ...)-1, select(2, ...)-1, select(3, ...)
-   elseif narg == 4 then
-      src, dimension, firstIndex, size = select(1, ...), select(2, ...)-1, select(3, ...)-1, select(4, ...)
-   else
-      error('invalid arguments')
-   end
-   self:set(src)
+Tensor.narrow = argcheck{
+   {{name='self', type='torch.Tensor'},
+    {name='src', type='torch.Tensor', defaulta='self'},
+    {name='dim', type='number'},
+    {name='idx', type='number'},
+    {name='size', type='number'}},
+   function(self, src, dim, idx, size)
+      self:set(src)
 
-   assert(dimension >= 0 and dimension < src.__nDimension, 'out of range')
-   assert(firstIndex >= 0 and firstIndex < src.__size[dimension], 'out of range')
-   assert(size > 0 and firstIndex+size <= src.__size[dimension], 'out of range')
-  
-   
-   if firstIndex > 0 then
-      self.__storageOffset = self.__storageOffset + firstIndex*self.__stride[dimension];
-   end
-   self.__size[dimension] = size
+      assert(dim >= 0 and dim < src.__nDimension, 'out of range')
+      assert(idx >= 0 and idx < src.__size[dim], 'out of range')
+      assert(size > 0 and idx+size <= src.__size[dim], 'out of range')
 
-   return self
-end
+      if idx > 0 then
+         self.__storageOffset = self.__storageOffset + idx*self.__stride[dim];
+      end
+      self.__size[dim] = size
+
+      return self
+   end
+}
 
 function Tensor:select(...)
    local narg = select('#', ...)
