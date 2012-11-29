@@ -269,6 +269,8 @@ Tensor.narrow = argcheck{
    function(self, src, dim, idx, size)
       local dst = src and self or torch.Tensor()
       src = src or self
+      dim = dim - 1
+      idx = idx - 1
 
       dst:set(src)
 
@@ -293,6 +295,8 @@ Tensor.select = argcheck{
    function(self, src, dim, idx)
       local dst = src and self or torch.Tensor()
       src = src or self
+      dim = dim - 1
+      idx = idx - 1
 
       assert(dim >= 0 and dim < src.__nDimension, 'out of range')
       assert(idx >= 0 and idx < src.__size[dim], 'out of range')
@@ -300,7 +304,7 @@ Tensor.select = argcheck{
       if src.__nDimension == 1 then
          return tonumber( (src.__storage.__data + src.__storageOffset)[idx*self.__stride[0]] )
       else
-         self:narrow(dst, src, dim, idx, 1)
+         dst:narrow(src, dim+1, idx+1, 1) -- DEBUG: 0-index confusing
          for d=dim,self.__nDimension-2 do
             dst.__size[d] = dst.__size[d+1]
             dst.__stride[d] = dst.__stride[d+1]
@@ -321,6 +325,8 @@ Tensor.transpose = argcheck{
       local dst = src and self or torch.Tensor()
       src = src or self
       dst:set(src)
+      dim1 = dim1 - 1
+      dim2 = dim2 - 1
 
       assert(dim1 >= 0 and dim1 < src.__nDimension, 'out of range')
       assert(dim2 >= 0 and dim2 < src.__nDimension, 'out of range')
@@ -350,9 +356,10 @@ Tensor.unfold = argcheck{
       local dst = src and self or torch.Tensor()
       src = src or self
       dst:set(src)
+      dim = dim -1
 
       assert(src.__nDimension > 0, "cannot unfold an empty tensor")
-      assert(dim < src.__nDimension, "out of range")
+      assert(dim >= 0 and dim < src.__nDimension, "out of range")
       assert(size <= src.__size[dim], "out of range")
       assert(step > 0, "invalid step")
 
@@ -421,8 +428,9 @@ Tensor.squeeze1d = argcheck{
       local dst = src and self or torch.Tensor()
       src = src or self
       dst:set(src)
+      dim = dim - 1
 
-      assert(dim < src.__nDimension, "dimension out of range")
+      assert(dim >= 0 and dim < src.__nDimension, "dimension out of range")
 
       dst:set(src)
       if src.__size[dim] == 1 and src.__nDimension > 1 then
@@ -471,14 +479,9 @@ Tensor.nElement = argcheck{
 mt = {__index=function(self, k)
                  if type(k) == 'number' then
                     if self.__nDimension == 1 then
-                       return tonumber(TH.THTensor_get1d(self, k-1))
+                       return self.__storage[tonumber(k+self.__storageOffset)]
                     elseif self.__nDimension > 1 then
-                       local t = TH.THTensor_newSelect(self, 0, k-1)
-                       ffi.gc(t, function(self)
-                                    print('freeing tensor -- []')
-                                    TH.THTensor_free(self)
-                                 end)
-                       return t
+                       return self:select(1, k)
                     else
                        error('empty tensor')
                     end
