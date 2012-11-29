@@ -133,5 +133,6 @@ include('apply.lua', env)
 include('dimapply.lua', env)
 include('iterator.lua', env)
 includetemplate('maths.lua', env)
+includetemplate('print.lua', env)
 
 return torch
