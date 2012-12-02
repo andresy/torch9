@@ -126,6 +126,7 @@ setmetatable(env, {__index=_G})
 
 include('argcheck.lua', env)
 include('argtypes.lua', env)
+include('dispatch.lua', env)
 include('Timer.lua', env)
 includetemplate('Storage.lua', env)
 includetemplate('Tensor.lua', env)
