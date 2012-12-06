@@ -6,7 +6,7 @@ local longvlact = ffi.typeof('long[?]')
 local function carray2table(arr, size)
    local tbl = {}
    for i=1,size do
-      tbl[i] = arr[i-1]
+      tbl[i] = tonumber(arr[i-1])
    end
    return tbl
 end
