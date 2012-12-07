@@ -181,7 +181,7 @@ void cadd_float(float *z, long strz, float *y, long stry, float *x, long strx, l
 {
   long i;
   for(i = 0; i < sz; i++)
-    z[i*strz] = x[i*strx] + value*y[i*stry];
+    z[i*strz] = y[i*strx] + value*x[i*stry];
 }
 
 void mul_float(float *y, long stry, float *x, long strx, long sz, float value)
