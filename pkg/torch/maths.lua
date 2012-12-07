@@ -1,5 +1,9 @@
 local ffi = require 'ffi'
 
+-- DEBUG:
+-- if returning stuff like th.sum_float directly, then one should do tonumber(), i think
+-- still need to handle special dispatch by naming in ones() zeros()
+
 ffi.cdef[[
       void zero_float(float *x, long str, long sz);
       void fill_float(float *x, long str, long sz, float value);
@@ -43,9 +47,10 @@ register(
     {name="value", type="number"},
     self="dst"},
    function(dst, value)
-      torch.apply(dst, function(x, str, sz)
-                          th.fill_real(x, str, sz, value)
-                       end)
+      torch.apply(dst,
+                  function(dst, str, sz)
+                     th.fill_real(dst, str, sz, value)
+                  end)
       return dst
    end
 )
@@ -62,14 +67,15 @@ register(
 
 register(
    "dot",
-   {{name="vec1", type="torch.Tensor"},
-    {name="vec2", type="torch.Tensor"},
-    self="vec1"},
-   function(vec1, vec2)
+   {{name="src1", type="torch.Tensor"},
+    {name="src2", type="torch.Tensor"},
+    self="src1"},
+   function(src1, src2)
       local sum = 0
-      torch.apply2(vec1, vec2, function(x, strx, y, stry, sz)
-                                  sum = sum + th.dot_real(x, strx, y, stry, sz)
-                               end)
+      torch.apply2(src1, src2,
+                   function(src1, strsrc1, src2, strsrc2, sz)
+                      sum = sum + th.dot_real(src1, strsrc1, src2, strsrc2, sz)
+                   end)
       return sum
    end
 )
@@ -81,30 +87,36 @@ register(
     function(src)
        local min = math.huge
        local minptr = ffi.new('real[1]')
-      local idxptr = ffi.new('long[1]')
-      torch.apply(src, function(x, str, sz)
-                          th.min_real(minptr, idxptr, x, str, sz)
-                          min = math.min(min, minptr[0])
-                       end)
-      return min
+       local idsrcptr = ffi.new('long[1]')
+       torch.apply(src,
+                   function(src, str, sz)
+                      th.min_real(minptr, idsrcptr, src, str, sz)
+                      min = math.min(min, minptr[0])
+                   end)
+       return min
    end,
     
-    {{name="dst", type="torch.Tensor", default=true},
-     {name="idx", type="torch.LongTensor", default=true},
-     {name="src", type="torch.Tensor"},
+    {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+     {name="idx", type="torch.LongTensor", opt=true},
+     {name="src", type="torch.Tensor", method={opt=true}},
      {name="dim", type="number"},
-     self="src"},
+     self="dst"},
     function(dst, idx, src, dim)
+       local res = src and dst or torch.Tensor()
+       src = src or dst
+       idx = idx or torch.LongTensor()
+
        local size = src:size()
        size[dim] = 1
-       dst:resize(size)
+       res:resize(size)
        idx:resize(size)
-       torch.dimapply3(dst, idx, src, dim, function(dst, dstst, dstsz,
-                                                    idx, idxst, idxsz,
-                                                    src, srcst, srcsz)
-                                              th.min_real(dst, idx, src, srcst, srcsz)
-                                           end)
-       return dst, idx
+       torch.dimapply3(res, idx, src, dim,
+                       function(res, resst, ressz,
+                                idx, idxst, idxsz,
+                                src, srcst, srcsz)
+                          th.min_real(res, idx, src, srcst, srcsz)
+                       end)
+       return res, idx
     end}
 )
 
@@ -115,30 +127,36 @@ register(
     function(src)
        local max = -math.huge
        local maxptr = ffi.new('real[1]')
-       local idxptr = ffi.new('long[1]')
-       torch.apply(src, function(x, str, sz)
-                           th.max_real(maxptr, idxptr, x, str, sz)
-                           max = math.max(max, maxptr[0])
-                        end)
+       local idsrcptr = ffi.new('long[1]')
+       torch.apply(src,
+                   function(src, str, sz)
+                      th.max_real(maxptr, idsrcptr, src, str, sz)
+                      max = math.max(max, maxptr[0])
+                   end)
        return max
-    end,
+   end,
     
-    {{name="dst", type="torch.Tensor", default=true},
-     {name="idx", type="torch.LongTensor", default=true},
-     {name="src", type="torch.Tensor"},
+    {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+     {name="idx", type="torch.LongTensor", opt=true},
+     {name="src", type="torch.Tensor", method={opt=true}},
      {name="dim", type="number"},
-     self="src"},
+     self="dst"},
     function(dst, idx, src, dim)
+       local res = src and dst or torch.Tensor()
+       src = src or dst
+       idx = idx or torch.LongTensor()
+
        local size = src:size()
        size[dim] = 1
-       dst:resize(size)
+       res:resize(size)
        idx:resize(size)
-       torch.dimapply3(dst, idx, src, dim, function(dst, dstst, dstsz,
-                                                    idx, idxst, idxsz,
-                                                    src, srcst, srcsz)
-                                              th.max_real(dst, idx, src, srcst, srcsz)
-                                           end)
-       return dst, idx
+       torch.dimapply3(res, idx, src, dim,
+                       function(res, resst, ressz,
+                                idx, idxst, idxsz,
+                                src, srcst, srcsz)
+                          th.max_real(res, idx, src, srcst, srcsz)
+                       end)
+       return res, idx
     end}
 )
 
@@ -148,25 +166,29 @@ register(
      self="src"},
     function(src)
        local sum = 0
-       torch.apply(src, function(x, str, sz)
-                           sum = sum + th.sum_real(x, str, sz)
+       torch.apply(src, function(src, str, sz)
+                           sum = sum + th.sum_real(src, str, sz)
                         end)
        return sum
     end,
     
-    {{name="dst", type="torch.Tensor", default=true},
-     {name="src", type="torch.Tensor"},
+    {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+     {name="src", type="torch.Tensor", method={opt=true}},
      {name="dim", type="number"},
-     self="src"},
+     self="dst"},
     function(dst, src, dim)
+       local res = src and dst or torch.Tensor()
+       src = src or dst
+
        local size = src:size()
        size[dim] = 1
-       dst:resize(size)
-       torch.dimapply2(dst, src, dim, function(dst, dstst, dstsz,
-                                               src, srcst, srcsz)
-                                         dst[0] = th.sum_real(src, srcst, srcsz)
-                                      end)
-       return dst
+       res:resize(size)
+       torch.dimapply2(res, src, dim,
+                       function(res, resst, ressz,
+                                src, srcst, srcsz)
+                          res[0] = th.sum_real(src, srcst, srcsz)
+                       end)
+       return res
     end}
 )
 
@@ -177,52 +199,63 @@ register(
     function(src)
        local prod = (src:nElement() > 0) and 1 or 0
        local prodptr = ffi.new('real[1]')
-       torch.apply(src, function(x, str, sz)
-                           th.prod_real(prodptr, x, str, sz)
-                           prod = prod * prodptr[0]
-                        end)
+       torch.apply(src,
+                   function(src, str, sz)
+                      th.prod_real(prodptr, src, str, sz)
+                      prod = prod * prodptr[0]
+                   end)
        return prod
     end,
     
-    {{name="dst", type="torch.Tensor", default=true},
-     {name="src", type="torch.Tensor"},
+    {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+     {name="src", type="torch.Tensor", method={opt=true}},
      {name="dim", type="number"},
-     self="src"},
+     self="dst"},
     function(dst, src, dim)
+       local res = src and dst or torch.Tensor()
+       src = src or dst
+
        local size = src:size()
        size[dim] = 1
-       dst:resize(size)
-       torch.dimapply2(dst, src, dim, function(dst, dstst, dstsz,
-                                               src, srcst, srcsz)
-                                         th.prod_real(dst, src, srcst, srcsz)
-                                      end)
-       return dst
+       res:resize(size)
+       torch.dimapply2(res, src, dim,
+                       function(res, resst, ressz,
+                                src, srcst, srcsz)
+                          th.prod_real(res, src, srcst, srcsz)
+                       end)
+       return res
     end}
 )
 
 register(
    "cumsum",
-   {{name="dst", type="torch.Tensor", default=true},
-    {name="src", type="torch.Tensor"},
-    {name="dim", type="number"},
-    self="src"},
-   function(dst, src, dim)
-      dst:resizeAs(src)
-      torch.dimapply2(dst, src, dim, th.cumsum_real)
-      return dst
-   end
+    {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+     {name="src", type="torch.Tensor", method={opt=true}},
+     {name="dim", type="number"},
+     self="dst"},
+    function(dst, src, dim)
+       local res = src and dst or torch.Tensor()
+       src = src or dst
+
+       res:resizeAs(src)
+       torch.dimapply2(res, src, dim, th.cumsum_real)
+       return res
+    end
 )
 
 register(
    "cumprod",
-   {{name="dst", type="torch.Tensor", default=true},
-    {name="src", type="torch.Tensor"},
-    {name="dim", type="number"},
-    self="src"},
-   function(dst, src, dim)
-      dst:resizeAs(src)
-      torch.dimapply2(dst, src, dim, th.cumprod_real)
-      return dst
+    {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+     {name="src", type="torch.Tensor", method={opt=true}},
+     {name="dim", type="number"},
+     self="dst"},
+    function(dst, src, dim)
+       local res = src and dst or torch.Tensor()
+       src = src or dst
+
+       res:resizeAs(src)
+       torch.dimapply2(res, src, dim, th.cumprod_real)
+       return res
    end
 )
 
@@ -235,26 +268,31 @@ register(
      self="src"},
     function(src, n)
        local norm = 0
-       torch.apply(src, function(x, str, sz)
-                           norm = norm + th.norm_real(x, str, sz, n, 0)
-                        end)
+       torch.apply(src,
+                   function(src, str, sz)
+                      norm = norm + th.norm_real(src, str, sz, n, 0)
+                   end)
        return math.pow(norm, 1/n)
     end,
     
-    {{name="dst", type="torch.Tensor", default=true},
-     {name="src", type="torch.Tensor"},
+    {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+     {name="src", type="torch.Tensor", method={opt=true}},
      {name="n", type="number", default=2},
      {name="dim", type="number"},
-     self="src"},
+     self="dst"},
     function(dst, src, n, dim)
+       local res = src and dst or torch.Tensor()
+       src = src or dst
+
        local size = src:size()
        size[dim] = 1
-       dst:resize(size)
-       torch.dimapply2(dst, src, dim, function(dst, dstst, dstsz,
-                                               src, srcst, srcsz)
-                                         th.norm_real(dst, src, srcst, srcsz, n, 1)
-                                      end)
-       return dst
+       res:resize(size)
+       torch.dimapply2(res, src, dim,
+                       function(res, resst, ressz,
+                                src, srcst, srcsz)
+                          th.norm_real(res, src, srcst, srcsz, n, 1)
+                       end)
+       return res
     end}
 )
 
@@ -264,23 +302,27 @@ register(
      self="src"},
     function(src)
        local sum = 0
-       torch.apply(src, function(x, str, sz)
-                           sum = sum + th.sum_real(x, str, sz)
+       torch.apply(src, function(src, str, sz)
+                           sum = sum + th.sum_real(src, str, sz)
                         end)
-       return sum / src:numElement()
+       return sum / src:nElement()
     end,
     
-    {{name="dst", type="torch.Tensor", default=true}, -- could be torch.DoubleTensor for other types
-       {name="src", type="torch.Tensor"},
-       {name="dim", type="number"}},
+    {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},  -- could be torch.DoubleTensor for other types
+     {name="src", type="torch.Tensor", method={opt=true}},
+     {name="dim", type="number"}},
     function(dst, src, dim)
+       local res = src and dst or torch.Tensor()
+       src = src or dst
+
        local size = src:size()
        size[dim] = 1
-       dst:resize(size)
-       torch.dimapply2(dst, src, dim, function(dst, dstst, dstsz,
-                                               src, srcst, srcsz)
-                                         dst[0] = th.sum_real(src, srcst, srcsz) / srcsz
-                                      end)
+       res:resize(size)
+       torch.dimapply2(res, src, dim,
+                       function(res, resst, ressz,
+                                src, srcst, srcsz)
+                          res[0] = th.sum_real(src, srcst, srcsz) / srcsz
+                       end)
        return dst
     end}
 )
@@ -294,10 +336,11 @@ register(
        local sum = 0
        local sum2 = 0
        local n = src:nElement()
-       torch.apply(src, function(x, str, sz)
-                           sum = sum + th.sum_real(x, str, sz)
-                           sum2 = sum2 + th.sum2_real(x, str, sz)
-                        end)
+       torch.apply(src,
+                   function(src, str, sz)
+                      sum = sum + th.sum_real(src, str, sz)
+                      sum2 = sum2 + th.sum2_real(src, str, sz)
+                   end)
        if flag then
           return math.sqrt((sum2 - sum*sum/n)/n)
        else
@@ -305,31 +348,36 @@ register(
        end
     end,
     
-    {{name="dst", type="torch.Tensor", default=true}, -- could be torch.DoubleTensor for other types
-       {name="src", type="torch.Tensor"},
-       {name="dim", type="number"},
-       {name="flag", type="boolean", default=false},
-       self="src"},
+    {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},  -- could be torch.DoubleTensor for other types
+     {name="src", type="torch.Tensor", method={opt=true}},
+     {name="dim", type="number"},
+     {name="flag", type="boolean", default=false},
+     self="dst"},
     function(dst, src, dim, flag)
+       local res = src and dst or torch.Tensor()
+       src = src or dst
+
        local size = src:size()
        size[dim] = 1
-       dst:resize(size)
+       res:resize(size)
        local sumptr = ffi.new('real[1]')
        local sum2ptr = ffi.new('real[1]')
        if flag then
-          torch.dimapply2(dst, src, dim, function(dst, dstst, dstsz,
-                                                  src, srcst, srcsz)
-                                            th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
-                                            dst[0] = math.sqrt((sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/srcsz)
-                                         end)
+          torch.dimapply2(res, src, dim,
+                          function(res, resst, ressz,
+                                   src, srcst, srcsz)
+                             th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
+                             res[0] = math.sqrt((sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/srcsz)
+                          end)
        else
-          torch.dimapply2(dst, src, dim, function(dst, dstst, dstsz,
-                                                  src, srcst, srcsz)
-                                            th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
-                                            dst[0] = math.sqrt((sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/(srcsz-1))
-                                         end)
+          torch.dimapply2(res, src, dim,
+                          function(res, resst, ressz,
+                                   src, srcst, srcsz)
+                             th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
+                             res[0] = math.sqrt((sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/(srcsz-1))
+                          end)
        end
-       return dst
+       return res
     end}
 )
 
@@ -342,148 +390,214 @@ register(
        local sum = 0
        local sum2 = 0
        local n = src:nElement()
-       torch.apply(src, function(x, str, sz)
-                           sum = sum + th.sum_real(x, str, sz)
-                           sum2 = sum2 + th.sum2_real(x, str, sz)
-                        end)
+       torch.apply(src, function(src, str, sz)
+                         sum = sum + th.sum_real(src, str, sz)
+                         sum2 = sum2 + th.sum2_real(src, str, sz)
+                      end)
        if flag then
           return (sum2 - sum*sum/n)/n
        else
           return (sum2 - sum*sum/n)/(n-1)
        end
-            end,
+    end,
     
-    {{name="dst", type="torch.Tensor", default=true}, -- could be torch.DoubleTensor for other types
-       {name="src", type="torch.Tensor"},
-       {name="dim", type="number"},
-       {name="flag", type="boolean", default=false},
-       self="src"},
+    {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},  -- could be torch.DoubleTensor for other types
+     {name="src", type="torch.Tensor", method={opt=true}},
+     {name="dim", type="number"},
+     {name="flag", type="boolean", default=false},
+     self="dst"},
     function(dst, src, dim, flag)
+       local res = src and dst or torch.Tensor()
+       src = src or dst
+
        local size = src:size()
        size[dim] = 1
-       dst:resize(size)
+       res:resize(size)
        local sumptr = ffi.new('real[1]')
        local sum2ptr = ffi.new('real[1]')
        if flag then
-          torch.dimapply2(dst, src, dim, function(dst, dstst, dstsz,
-                                                  src, srcst, srcsz)
-                                            th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
-                                            dst[0] = (sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/srcsz
-                                         end)
+          torch.dimapply2(res, src, dim,
+                          function(res, resst, ressz,
+                                   src, srcst, srcsz)
+                             th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
+                             res[0] = (sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/srcsz
+                          end)
        else
-          torch.dimapply2(dst, src, dim, function(dst, dstst, dstsz,
-                                                  src, srcst, srcsz)
-                                            th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
-                                            dst[0] = (sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/(srcsz-1)
-                                         end)
+          torch.dimapply2(res, src, dim,
+                          function(res, resst, ressz,
+                                   src, srcst, srcsz)
+                             th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
+                             res[0] = (sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/(srcsz-1)
+                          end)
        end
-       return dst
+       return res
     end}
 )
 
--- warning: should have a different one for the method
-torch.Tensor.add =
-   argcheck{{{name="dst", type="torch.Tensor", default=true},
-             {name="src", type="torch.Tensor"},
-             {name="value", type="number"}},
-             function(dst, src, value)
-                dst:resizeAs(src)
-                torch.apply2(dst, src, function(y, stry, x, strx, sz)
-                                          th.add_real(y, stry, x, strx, sz, value)
-                                       end)
-                return dst
-             end,
+register(
+   "add",
+   {{{name="dst", type="torch.Tensor", opt=true,  method={opt=false}},
+     {name="src", type="torch.Tensor", opt=false, method={defaulta="self"}},
+     {name="value", type="number"},
+     self="dst"},
+    function(dst, src, value)
+       local res = src and dst or torch.Tensor()
+       src = src or self
 
-             {{name="dst", type="torch.Tensor", default=true},
-              {name="src1", type="torch.Tensor"},
-              {name="value", type="number", default=1},
-              {name="src2", type="torch.Tensor"}},
-             function(dst, src1, value, src2)
-                dst:resizeAs(src1)
-                torch.apply3(dst, src1, src2, function(dst, dstst, src1, src1st, src2, src2st, sz)
-                                                 th.cadd_real(dst, dstst, src1, src1st, src2, src2st, sz, value)
-                                              end)
-                return dst
-             end}
+       res:resizeAs(x)
+       torch.apply2(res, src,
+                    function(res, strres, src, strsrc, sz)
+                       th.add_real(res, strres, src, strsrc, sz, value)
+                    end)
+       return res
+    end,
 
-torch.Tensor.mul =
-   argcheck{{{name="dst", type="torch.Tensor", default=true},
-             {name="src", type="torch.Tensor"},
-             {name="value", type="number"}},
-            function(dst, src, value)
-               dst:resizeAs(src)
-               torch.apply2(dst, src, function(y, stry, x, strx, sz)
-                                         th.mul_real(y, stry, x, strx, sz, value)
-                                      end)
-               return dst
-            end}
+    {{name="dst", type="torch.Tensor", opt=true,   method={opt=false}},
+     {name="src1", type="torch.Tensor", opt=false, method={defaulta="self"}},
+     {name="value", type="number", default=1},
+     {name="src2", type="torch.Tensor"},
+     self="dst"},
+    function(dst, src1, value, src2)
+       local res = src1 and dst or torch.Tensor()
+       src1 = src1 or dst
 
-torch.Tensor.cmul = 
-   argcheck{{{name="dst", type="torch.Tensor", default=true},
-             {name="src1", type="torch.Tensor"},
-             {name="src2", type="torch.Tensor"}},
-            function(dst, src1, src2)
-               dst:resizeAs(src1)
-               torch.apply3(dst, src1, src2, th.cmul_real)
-               return dst
-            end}
+       res:resizeAs(src1)
+       torch.apply3(res, src1, src2,
+                    function(res, resst, src1, src1st, src2, src2st, sz)
+                       th.cadd_real(res, resst, src1, src1st, src2, src2st, sz, value)
+                    end)
+       return res
+    end}
+)
+
+register(
+   "mul",
+   {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+    {name="src", type="torch.Tensor", method={defaulta="self"}},
+    {name="value", type="number"},
+    self="dst"},
+   function(dst, src, value)
+      local res = src and dst or torch.Tensor()
+      src = src or dst
+
+      res:resizeAs(src)
+      torch.apply2(res, src,
+                   function(y, stry, x, strx, sz)
+                      th.mul_real(y, stry, x, strx, sz, value)
+                   end)
+      return res
+   end
+)
+
+register(
+   "cmul",
+   {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+    {name="src1", type="torch.Tensor", method={defaulta="self"}},
+    {name="src2", type="torch.Tensor"},
+    self="dst"},
+   function(dst, src1, src2)
+      local res = src1 and dst or torch.Tensor()
+      src1 = src1 or dst
+
+      res:resizeAs(src1)
+      torch.apply3(res, src1, src2, th.cmul_real)
+      return res
+   end
+)
 
 
-torch.Tensor.div =
-   argcheck{{{name="dst", type="torch.Tensor", default=true},
-             {name="src", type="torch.Tensor"},
-             {name="value", type="number"}},
-             function(dst, src, value)
-                dst:resizeAs(src)
-                torch.apply2(dst, src, function(y, stry, x, strx, sz)
-                                          th.div_real(y, stry, x, strx, sz, value)
-                                       end)
-                return dst
-             end}
+register(
+   "div",
+   {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+    {name="src", type="torch.Tensor", method={defaulta="self"}},
+    {name="value", type="number"},
+    self="dst"},
+   function(dst, src, value)
+      local res = src and dst or torch.Tensor()
+      src = src or dst
 
-torch.Tensor.cdiv = 
-   argcheck{{{name="dst", type="torch.Tensor", default=true},
-             {name="src1", type="torch.Tensor"},
-             {name="src2", type="torch.Tensor"}},
-             function(dst, src1, src2)
-                dst:resizeAs(src1)
-                torch.apply3(dst, src1, src2, th.cdiv_real)
-                return dst
-             end}
+      res:resizeAs(src)
+      torch.apply2(res, src,
+                   function(res, strres, src, strsrc, sz)
+                      th.div_real(res, strres, src, strsrc, sz, value)
+                   end)
+      return res
+   end
+)
 
-torch.Tensor.addcmul = 
-   argcheck{{{name="dst", type="torch.Tensor"},
-             {name="value", type="number", default=1},
-             {name="src1", type="torch.Tensor"},
-             {name="src2", type="torch.Tensor"}},
-             function(dst, value, src1, src2)
-                dst:resizeAs(src1)
-                torch.apply3(dst, src1, src2, function(dst, dstst, src1, src1st, src2, src2st, sz)
-                                                 th.addcmul_real(dst, dstst, src1, src1st, src2, src2st, sz, value)
-                                              end)
-                return dst
-             end}
+register(
+   "cdiv",
+   {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+    {name="src1", type="torch.Tensor", method={defaulta="self"}},
+    {name="src2", type="torch.Tensor"},
+    self="dst"},
+   function(dst, src1, src2)
+      local res = src1 and dst or torch.Tensor()
+      src1 = src1 or dst
 
-torch.Tensor.addcdiv = 
-   argcheck{{{name="dst", type="torch.Tensor"},
-             {name="value", type="number", default=1},
-             {name="src1", type="torch.Tensor"},
-             {name="src2", type="torch.Tensor"}},
-             function(dst, value, src1, src2)
-                dst:resizeAs(src1)
-                torch.apply3(dst, src1, src2, function(dst, dstst, src1, src1st, src2, src2st, sz)
-                                                 th.addcdiv_real(dst, dstst, src1, src1st, src2, src2st, sz, value)
-                                              end)
-                return dst
-             end}
+      res:resizeAs(src1)
+      torch.apply3(res, src1, src2, th.cdiv_real)
+      return res
+   end
+)
 
-torch.Tensor.trace =
-   argcheck({{name="src", type="torch.Tensor", dim=2}},
-            function(src)
-               return th.sum_float(src:data(),
-                                   src:stride(1)+src:stride(2),
-                                   math.min(src:size(1), src:size(2)))
-            end)
+register(
+   "addcmul",
+   {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+    {name="value", type="number", default=1},
+    {name="src1", type="torch.Tensor", method={defaulta="self"}},
+    {name="src2", type="torch.Tensor"},
+    self="dst"},
+   function(dst, value, src1, src2)
+      local res = src1 and dst or torch.Tensor()
+      src1 = src1 or dst
+
+      res:resizeAs(src1)
+      torch.apply3(res, src1, src2,
+                   function(res, resst, src1, src1st, src2, src2st, sz)
+                      th.addcmul_real(res, resst, src1, src1st, src2, src2st, sz, value)
+                   end)
+      return res
+   end
+)
+
+register(
+   "addcdiv",
+   {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+    {name="value", type="number", default=1},
+    {name="src1", type="torch.Tensor", method={defaulta="self"}},
+    {name="src2", type="torch.Tensor"},
+    self="dst"},
+   function(dst, value, src1, src2)
+      local res = src1 and dst or torch.Tensor()
+      src1 = src1 or dst
+
+      res:resizeAs(src1)
+      torch.apply3(res, src1, src2,
+                   function(res, resst, src1, src1st, src2, src2st, sz)
+                      th.addcdiv_real(res, resst, src1, src1st, src2, src2st, sz, value)
+                   end)
+      return res
+   end
+)
+
+register(
+   "trace",
+   {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+    {name="src", type="torch.Tensor", method={opt=true}},
+    self="dst"},
+   function(dst, src)
+      local res = src and dst or torch.Tensor()
+      src = src or dst
+
+      assert(src.__nDimension == 2, 'matrix expected')
+
+      res:resize(math.min(src:size(1), src:size(2)))
+      return th.sum_real(src:data(),
+                         src:stride(1)+src:stride(2),
+                         math.min(src:size(1), src:size(2)))
+   end
+)
 
 for _,name in ipairs{'log', 'log1p', 'exp', 'cos', 'acos', 'cosh', 'sin', 'asin',
                      'sinh', 'tan', 'atan', 'tanh', 'sqrt', 'ceil', 'floor', 'abs'} do
@@ -491,77 +605,103 @@ for _,name in ipairs{'log', 'log1p', 'exp', 'cos', 'acos', 'cosh', 'sin', 'asin'
    ffi.cdef(string.format('void %s_float(float *y, long stry, float *x, long strx, long sz);', name)) -- DEBUG: see below
 
    local func = th[name .. '_float'] -- DEBUG: *MUST* be real here, but i did not defined them yet ;)
-   torch.Tensor[name] =
-      argcheck({{name="dst", type="torch.Tensor", default=true},
-                {name="src", type="torch.Tensor"}},
-               function(dst, src)
-                  dst:resizeAs(src)
-                  torch.apply2(dst, src, func)
-                  return dst
-            end)
+   register(
+      name,
+      {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+       {name="src", type="torch.Tensor", method={defaulta="self"}},
+       self="dst"},
+      function(dst, src)
+         local res = src and dst or torch.Tensor()
+         src = src or dst
 
+         res:resizeAs(src)
+         torch.apply2(res, src, func)
+         return res
+      end
+   )
 end
 
 ffi.cdef('void pow_float(float *y, long stry, float *x, long strx, long sz, float value);')
 
-torch.Tensor.pow =
-   argcheck({{name="dst", type="torch.Tensor", default=true},
-             {name="src", type="torch.Tensor"},
-             {name="value", type="number"}},
-            function(dst, src, value)
-               dst:resizeAs(src)
-               torch.apply2(dst, src, function(dst, dstst, src, srcst, sz)
-                                         th.pow_real(dst, dstst, src, srcst, sz, value)
-                                      end)
-               return dst
-            end)
+register(
+   "pow",
+   {{name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+    {name="src", type="torch.Tensor", method={defaulta="self"}},
+    {name="value", type="number"},
+    self="dst"},
+   function(dst, src, value)
+      local res = src and dst or torch.Tensor()
+      src = src or dst
 
-torch.Tensor.zeros =
-   argcheck({{name="dst", type='torch.Tensor', default=true},
-             {name="size", type="numbers"}},
-            function(dst, size)
-               dst:resize(size)
-               dst:zero()
-               return dst
-            end)
+      res:resizeAs(src)
+      torch.apply2(res, src,
+                   function(res, resst, src, srcst, sz)
+                      th.pow_real(res, resst, src, srcst, sz, value)
+                   end)
+      return res
+   end
+)
 
-torch.Tensor.ones =
-   argcheck({{name="dst", type='torch.Tensor', default=true},
-             {name="size", type="numbers"}},
-            function(dst, size)
-               dst:resize(size)
-               dst:fill(1)
-               return dst
-            end)
+register(
+   "zeros",
+   {{{name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+     {name="size", type="numbers"},
+     self="dst"},
+    function(dst, size)
+       local res = dst or torch.Tensor()
+       res:resize(size)
+       res:zero()
+       return res
+    end}
+)
 
-torch.Tensor.diag = argcheck{
-   {{name="dst", type='torch.Tensor', default=true},
-    {name="src", type='torch.Tensor'},
-    {name="k", type='number', default=0}},
-   function(dst, src)
+register(
+   "ones",
+   {{{name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+     {name="size", type="numbers"},
+     self="dst"},
+    function(dst, size)
+       local res = dst or torch.Tensor()
+       res:resize(size)
+       res:fill(1)
+       return res
+    end}
+)
+
+-- arg... a copy, or a view?
+register(
+   "diag",
+   {{name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+    {name="src", type='torch.Tensor', method={opt=true}},
+    {name="k", type='number', default=0},
+    self="dst"},
+   function(dst, src, k)
+      local res = src and dst or torch.Tensor()
+      src = src or dst
+
       assert(src.__nDimension == 1 or src.__nDimension == 2, "matrix or vector expected")
       if src.__nDimension == 1 then
          local sz = src.__size[0] + (k >= 0 and k or -k)
-         dst:resize(sz, sz):zero()
-         th.copy(dst:data() + (k >= 0 and k*dst.__stride[1] or -k*dst.__stride[0]),
-                 dst.__stride[0]+dst.__stride[1],
-                 src:data(),
-                 src.__stride[0],
-                 sz)
+         res:resize(sz, sz):zero()
+         th.copy_real(res:data() + (k >= 0 and k*res.__stride[1] or -k*res.__stride[0]),
+                      res.__stride[0]+res.__stride[1],
+                      src:data(),
+                      src.__stride[0],
+                      sz)
       else
          local sz
          if k >= 0 then
-            sz = math.min(src.__size[0], src.__size[1]-k)
+            sz = math.min(tonumber(src.__size[0]), tonumber(src.__size[1])-k)
          else
-            sz = math.min(src.__size[0]+k, src.__size[1])
+            sz = math.min(tonumber(src.__size[0])+k, tonumber(src.__size[1]))
          end
-         dst:resize(sz)
-         th.copy(dst:data(),
-                 dst.__stride[0],
-                 src:data() + (k >= 0 and k*src.__stride[1] or -k*src.__stride[0]),
-                 src.__stride[0]+src.__stride[1],
-                 sz)
+         res:resize(sz)
+         th.copy_real(res:data(),
+                      res.__stride[0],
+                      src:data() + (k >= 0 and k*src.__stride[1] or -k*src.__stride[0]),
+                      src.__stride[0]+src.__stride[1],
+                      sz)
       end
-      return dst
+      return res
    end
-}
+)
