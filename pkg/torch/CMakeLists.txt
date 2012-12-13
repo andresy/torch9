@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 SET(luasrc init.lua argcheck.lua argtypes.lua Timer.lua Storage.lua
-Tensor.lua apply.lua dimapply.lua iterator.lua maths.lua print.lua dispatch.lua)
+Tensor.lua apply.lua dimapply.lua iterator.lua maths.lua print.lua dispatch.lua namedispatch.lua)
   
 ADD_LIBRARY(maths SHARED maths.c)
 
