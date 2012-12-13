@@ -11,7 +11,7 @@ typedef unsigned char byte;
 
 -- torch is global for now [due to getmetatable()]
 torch = {}
-
+package.loaded.torch = torch
 
 -- adapt usual global functions to torch7 objects
 local luatostring = tostring
