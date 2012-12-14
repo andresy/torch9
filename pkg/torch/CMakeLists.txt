@@ -1,9 +1,16 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+INCLUDE(TorchTemplate)
+
 SET(luasrc init.lua argcheck.lua argtypes.lua Timer.lua Storage.lua
-Tensor.lua apply.lua dimapply.lua iterator.lua maths.lua print.lua dispatch.lua namedispatch.lua)
-  
-ADD_LIBRARY(maths SHARED maths.c)
+Tensor.lua apply.lua dimapply.lua iterator.lua print.lua dispatch.lua namedispatch.lua)
+
+ADD_TORCH_TEMPLATE("maths.c" mathcfiles)
+ADD_TORCH_TEMPLATE("maths.lua" luasrc "torch")
+
+ADD_LIBRARY(maths SHARED ${mathcfiles})
 
 # Note:
 # Might be replaced by ${LUA_DIR} and ${LIBDIR} if using luarocks

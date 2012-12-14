@@ -1,10 +1,12 @@
 #include <math.h>
 #include <string.h>
 
-void zero_float(float *x, long str, long sz)
+#define byte unsigned char
+
+void zero_real(real *x, long str, long sz)
 {
   if(str == 1)
-    memset(x, 0, sizeof(float)*sz);
+    memset(x, 0, sizeof(real)*sz);
   else
   {
     long i;    
@@ -13,7 +15,7 @@ void zero_float(float *x, long str, long sz)
   }
 }
 
-void fill_float(float *x, long str, long sz, float value)
+void fill_real(real *x, long str, long sz, real value)
 {
   long i;
 
@@ -21,7 +23,7 @@ void fill_float(float *x, long str, long sz, float value)
     x[i*str] = value;
 }
 
-void copy_float(float *y, long stry, float *x, long strx, long sz)
+void copy_real(real *y, long stry, real *x, long strx, long sz)
 {
   long i;
 
@@ -29,23 +31,23 @@ void copy_float(float *y, long stry, float *x, long strx, long sz)
     y[i*stry] = x[i*strx];
 }
 
-float dot_float(float *x, long strx, float *y, long stry, long sz)
+real dot_real(real *x, long strx, real *y, long stry, long sz)
 {
   long i;
-  double sum = 0;
+  accreal sum = 0;
   for(i = 0; i < sz; i++)
     sum += x[i*strx]*y[i*stry];
-  return (float)sum;
+  return (real)sum;
 }
 
-void min_float(float *min_, long *idx_, float *x, long strx, long sz)
+void min_real(real *min_, long *idx_, real *x, long strx, long sz)
 {
   long i;
-  float min = (sz > 0 ? x[0] : 0);
+  real min = (sz > 0 ? x[0] : 0);
   long idx = 1; /* lua */
   for(i = 1; i < sz; i++)
   {
-    float z = x[i*strx];
+    real z = x[i*strx];
     if(z < min)
     {
       min = z;
@@ -56,14 +58,14 @@ void min_float(float *min_, long *idx_, float *x, long strx, long sz)
   *idx_ = idx;
 }
 
-void max_float(float *max_, long *idx_, float *x, long strx, long sz)
+void max_real(real *max_, long *idx_, real *x, long strx, long sz)
 {
   long i;
-  float max = (sz > 0 ? x[0] : 0);
+  real max = (sz > 0 ? x[0] : 0);
   long idx = 1; /* lua */
   for(i = 1; i < sz; i++)
   {
-    float z = x[i*strx];
+    real z = x[i*strx];
     if(z > max)
     {
       max = z;
@@ -74,35 +76,35 @@ void max_float(float *max_, long *idx_, float *x, long strx, long sz)
   *idx_ = idx;
 }
 
-float sum_float(float *x, long strx, long sz)
+real sum_real(real *x, long strx, long sz)
 {
   long i;
-  double sum = 0;
+  accreal sum = 0;
   for(i = 0; i < sz; i++)
     sum += x[i*strx];
-  return (float)sum;
+  return (real)sum;
 }
 
-float sum2_float(float *x, long strx, long sz)
+real sum2_real(real *x, long strx, long sz)
 {
   long i;
-  double sum2 = 0;
+  accreal sum2 = 0;
   for(i = 0; i < sz; i++)
   {
-    float z = x[i*strx];
+    real z = x[i*strx];
     sum2 += z*z;
   }
-  return (float)sum2;
+  return (real)sum2;
 }
 
-void sum_sum2_float(float *sum_, float *sum2_, float *x, long strx, long sz)
+void sum_sum2_real(real *sum_, real *sum2_, real *x, long strx, long sz)
 {
   long i;
-  double sum = 0;
-  double sum2 = 0;
+  accreal sum = 0;
+  accreal sum2 = 0;
   for(i = 0; i < sz; i++)
   {
-    float z = x[i*strx];
+    real z = x[i*strx];
     sum += z;
     sum2 += z*z;
   }
@@ -110,41 +112,41 @@ void sum_sum2_float(float *sum_, float *sum2_, float *x, long strx, long sz)
   *sum2_ = sum2;
 }
 
-void prod_float(float *prod_, float *x, long strx, long sz)
+void prod_real(real *prod_, real *x, long strx, long sz)
 {
   long i;
-  double prod = (sz > 0 ? x[0] : 0);
+  accreal prod = (sz > 0 ? x[0] : 0);
   for(i = 1; i < sz; i++)
     prod *= x[i*strx];
-  *prod_ = (float)prod;
+  *prod_ = (real)prod;
 }
 
-void cumsum_float(float *cumsum, long cumsumst, long cumsumsz, float *x, long strx, long sz)
+void cumsum_real(real *cumsum, long cumsumst, long cumsumsz, real *x, long strx, long sz)
 {
   long i;
-  double sum = 0;
+  accreal sum = 0;
   for(i = 0; i < sz; i++)
   {
     sum += x[i*strx];
-    cumsum[i*cumsumst] = (float)sum;
+    cumsum[i*cumsumst] = (real)sum;
   }
 }
 
-void cumprod_float(float *cumprod, long cumprodst, long cumprodsz, float *x, long strx, long sz)
+void cumprod_real(real *cumprod, long cumprodst, long cumprodsz, real *x, long strx, long sz)
 {
   long i;
-  double prod = 1;
+  accreal prod = 1;
   for(i = 0; i < sz; i++)
   {
     prod *= x[i*strx];
-    cumprod[i*cumprodst] = (float)prod;
+    cumprod[i*cumprodst] = (real)prod;
   }
 }
 
-float norm_float(float *x, long strx, long sz, float n, int dopow)
+real norm_real(real *x, long strx, long sz, real n, int dopow)
 {
   long i;
-  double sum = 0;
+  accreal sum = 0;
   if(n == 1.0)
   {
     for(i = 0; i < sz; i++)
@@ -154,7 +156,7 @@ float norm_float(float *x, long strx, long sz, float n, int dopow)
   {
     for(i = 0; i < sz; i++)
     {
-      float z = x[i*strx];
+      real z = x[i*strx];
       sum += z*z;
     }
   }
@@ -165,61 +167,61 @@ float norm_float(float *x, long strx, long sz, float n, int dopow)
   }
 
   if(dopow)
-    return (float)pow(sum, 1/n);
+    return (real)pow(sum, 1/n);
   else
-    return (float)sum;
+    return (real)sum;
 }
 
-void add_float(float *y, long stry, float *x, long strx, long sz, float value)
+void add_real(real *y, long stry, real *x, long strx, long sz, real value)
 {
   long i;
   for(i = 0; i < sz; i++)
     y[i*stry] = x[i*strx] + value;
 }
 
-void cadd_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz, float value)
+void cadd_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value)
 {
   long i;
   for(i = 0; i < sz; i++)
     z[i*strz] = y[i*strx] + value*x[i*stry];
 }
 
-void mul_float(float *y, long stry, float *x, long strx, long sz, float value)
+void mul_real(real *y, long stry, real *x, long strx, long sz, real value)
 {
   long i;
   for(i = 0; i < sz; i++)
     y[i*stry] = x[i*strx] * value;
 }
 
-void cmul_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz)
+void cmul_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz)
 {
   long i;
   for(i = 0; i < sz; i++)
     z[i*strz] = x[i*strx] * y[i*stry];
 }
 
-void div_float(float *y, long stry, float *x, long strx, long sz, float value)
+void div_real(real *y, long stry, real *x, long strx, long sz, real value)
 {
   long i;
   for(i = 0; i < sz; i++)
     y[i*stry] = x[i*strx] / value;
 }
 
-void cdiv_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz)
+void cdiv_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz)
 {
   long i;
   for(i = 0; i < sz; i++)
     z[i*strz] = x[i*strx] / y[i*stry];
 }
 
-void addcmul_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz, float value)
+void addcmul_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value)
 {
   long i;
   for(i = 0; i < sz; i++)
     z[i*strz] += value * x[i*strx] * y[i*stry];
 }
 
-void addcdiv_float(float *z, long strz, float *y, long stry, float *x, long strx, long sz, float value)
+void addcdiv_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value)
 {
   long i;
   for(i = 0; i < sz; i++)
@@ -227,7 +229,7 @@ void addcdiv_float(float *z, long strz, float *y, long stry, float *x, long strx
 }
 
 #define BASIC_FUNC(NAME)                                                \
-  void NAME##_float(float *y, long stry, float *x, long strx, long sz)  \
+  void NAME##_real(real *y, long stry, real *x, long strx, long sz)  \
   {                                                                     \
     long i;                                                             \
     for(i = 0; i < sz; i++)                                             \
@@ -251,16 +253,19 @@ BASIC_FUNC(sqrt)
 BASIC_FUNC(ceil)
 BASIC_FUNC(floor)
 
-void abs_float(float *y, long stry, float *x, long strx, long sz)
+void abs_real(real *y, long stry, real *x, long strx, long sz)
 {
   long i;
   for(i = 0; i < sz; i++)
     y[i] = fabs(x[i]);
 }
 
-void pow_float(float *y, long stry, float *x, long strx, long sz, float value)
+void pow_real(real *y, long stry, real *x, long strx, long sz, real value)
 {
   long i;
   for(i = 0; i < sz; i++)
     y[i] = pow(x[i], value);
 }
+
+#undef BASIC_FUNC
+#undef byte

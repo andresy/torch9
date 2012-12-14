@@ -126,14 +126,13 @@ setmetatable(env, {__index=_G})
 
 include('argcheck.lua', env)
 include('argtypes.lua', env)
-include('dispatch.lua', env)
-include('Timer.lua', env)
+require 'torch.Timer'
 includetemplate('Storage.lua', env)
 includetemplate('Tensor.lua', env)
 include('apply.lua', env)
 include('dimapply.lua', env)
 include('iterator.lua', env)
-includetemplate('maths.lua', env)
+require('torch.maths')
 includetemplate('print.lua', env)
 
 return torch
