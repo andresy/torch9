@@ -1,3 +1,6 @@
+local torch = require 'torch'
+local ffi = require 'ffi'
+
 if jit.os == 'OSX' then
    ffi.cdef([[
      typedef long time_t;
