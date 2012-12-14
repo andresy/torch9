@@ -1,5 +1,5 @@
 
-dispatch = 
+local dispatch =
    argcheck{
    {{name="idx", type="number", default=1}},
    function(idx)
