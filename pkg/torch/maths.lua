@@ -28,6 +28,8 @@ ffi.cdef[[
       void cdiv_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz);
       void addcmul_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value);
       void addcdiv_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value);
+
+      void gemv_real(char trans, long m, long n, real alpha, real *a, long lda, real *x, long incx, real beta, real *y, long incy);
 ]]
 
 local th = ffi.load(paths.concat(paths.install_lua_path,
@@ -520,7 +522,7 @@ register(
    {
       {
          {name="dst", type="torch.Tensor", opt=true,  method={opt=false}},
-         {name="src", type="torch.Tensor", opt=false, method={defaulta="self"}},
+         {name="src", type="torch.Tensor", method={defaulta="self"}},
          {name="value", type="number"},
          self="dst"
       },
@@ -836,6 +838,62 @@ register(
                          src.__stride[0]+src.__stride[1],
                          sz)
          end
+         return res
+      end
+   }
+)
+
+register(
+   "addmv",
+   {
+      {
+         {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+         {name="beta", type='number', default=1},
+         {name="src", type='torch.Tensor', method={defaulta="self"}},
+         {name="alpha", type='number', default=1},
+         {name="mat", type='torch.Tensor', dim=2},
+         {name="vec", type='torch.Tensor', dim=1},
+         self="dst"
+      },
+      function(dst, beta, src, alpha, mat, vec)
+         local res = src and dst or torch.Tensor()
+         src = src or self
+
+         assert(mat.__size[1] == vec.__size[0], "size mismatch")
+         assert(src.__nDimension == 1 and src.__size[0] == mat.__size[0], "size mismatch")
+
+         if res ~= src then
+            res:resizeAs(src)
+            res:copy(src)
+         end
+
+         if mat.__stride[0] == 1 then
+            th.gemv_real(string.byte('n'),
+                         mat.__size[0], mat.__size[1],
+                         alpha,
+                         mat:data(), mat.__stride[1],
+                         vec:data(), vec.__stride[0],
+                         beta,
+                         res:data(), res.__stride[0]);
+         elseif mat.__stride[1] == 1 then
+            th.gemv_real(string.byte('t'),
+                         mat.__size[1], mat.__size[0],
+                         alpha,
+                         mat:data(), mat.__stride[0],
+                         vec:data(), vec.__stride[0],
+                         beta,
+                         res:data(), res.__stride[0]);
+         else
+            mat = mat:contiguous()
+            th.gemv_real(string.byte('t'),
+                         mat.__size[1], mat.__size[0],
+                         alpha,
+                         mat:data(), mat.__stride[0],
+                         vec:data(), vec.__stride[0],
+                         beta,
+                         res:data(), res.__stride[0]);
+         end
+
          return res
       end
    }
