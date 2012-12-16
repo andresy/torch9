@@ -1,8 +1,6 @@
 #include <math.h>
 #include <string.h>
 
-#define byte unsigned char
-
 void zero_real(real *x, long str, long sz)
 {
   if(str == 1)
