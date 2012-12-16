@@ -19,11 +19,16 @@ local dispatch =
    end,
 
    {{name="idxfunc", type="function"}},
-   function(idxfunc)
+   function(idxfunc) -- ARG, the idxfunc might be the same for several functions...
       local env = {funcs={}}
       setmetatable(env, {__index=getfenv(1)})
-      setfenv(idxfunc, env)
-      return idxfunc
+      local func =
+         function(...)
+            setfenv(idxfunc, env) -- ... workaround
+            return idxfunc(...)
+         end
+      setfenv(func, env) -- because that is how we define new dispatch functions below
+      return func
    end,
    
    {{name="func", type="function"},
