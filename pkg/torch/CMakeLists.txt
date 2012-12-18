@@ -5,7 +5,9 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 INCLUDE(TorchTemplate)
 
 SET(luasrc init.lua argcheck.lua argtypes.lua Timer.lua Storage.lua
-Tensor.lua apply.lua dimapply.lua iterator.lua print.lua dispatch.lua namedispatch.lua)
+Tensor.lua apply.lua dimapply.lua iterator.lua print.lua dispatch.lua namedispatch.lua random.lua)
+
+SET(mathcfiles random.c)
 
 ADD_TORCH_TEMPLATE("maths.c" mathcfiles)
 ADD_TORCH_TEMPLATE("blas.c" mathcfiles)

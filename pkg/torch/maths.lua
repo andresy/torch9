@@ -782,7 +782,6 @@ register(
    namedispatch
 )
 
-
 register(
    "ones",
    {
@@ -897,4 +896,50 @@ register(
          return res
       end
    }
+)
+
+register(
+   "rand",
+   {
+      {
+         {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+         {name="size", type="numbers"},
+         self="dst"
+      },
+      function(dst, size)
+         local res = dst or torch.Tensor()
+         res:resize(size)
+         torch.apply(res,
+                     function(dst, str, sz)
+                        for i=0,sz-1 do
+                           dst[i*str] = torch.random()/2^32
+                        end
+                     end)
+         return res
+      end
+   },
+   namedispatch
+)
+
+register(
+   "randn",
+   {
+      {
+         {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+         {name="size", type="numbers"},
+         self="dst"
+      },
+      function(dst, size)
+         local res = dst or torch.Tensor()
+         res:resize(size)
+         torch.apply(res,
+                     function(dst, str, sz)
+                        for i=0,sz-1 do
+                           dst[i*str] = torch.normal()
+                        end
+                     end)
+         return res
+      end
+   },
+   namedispatch
 )
