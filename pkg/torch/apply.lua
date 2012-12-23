@@ -82,40 +82,41 @@ local function generate_apply(dim)
    return table.concat(func, '\n')
 end
 
-local applyfunc = {}
-for i=0,10 do
-   applyfunc[i] = loadstring(generate_apply({i}))()
-end
+local applyfuncs = {}
 function torch.apply(t1, func)
-   local applyfunc = applyfunc[tonumber(t1.__nDimension)]
+   local dim = tonumber(t1.__nDimension)
+   local applyfunc = applyfuncs[dim]
+   if not applyfunc then
+      applyfunc = loadstring(generate_apply({dim}))()
+      applyfuncs[dim] = applyfunc
+   end
    applyfunc(t1, func)
 end
 
-local apply2func = {}
-for i=0,10 do
-   apply2func[i] = {}
-   for j=1,10 do
-      apply2func[i][j] = loadstring(generate_apply({i,j}))()
-   end
-end
-
+local apply2funcs = {}
 function torch.apply2(t1, t2, func)
-   local applyfunc = apply2func[tonumber(t1.__nDimension)][tonumber(t2.__nDimension)]
+   local dim1 = tonumber(t1.__nDimension)
+   local dim2 = tonumber(t2.__nDimension)
+   apply2funcs[dim1] = apply2funcs[dim1] or {}
+   local applyfunc = apply2funcs[dim1][dim2]
+   if not applyfunc then
+      applyfunc = loadstring(generate_apply({dim1,dim2}))()
+      apply2funcs[dim1][dim2] = applyfunc
+   end
    applyfunc(t1, t2, func)
 end
 
-local apply3func = {}
-for i=0,10 do
-   apply3func[i] = {}
-   for j=1,10 do
-      apply3func[i][j] = {}
-      for k=1,10 do
-         apply3func[i][j][k] = loadstring(generate_apply({i,j,k}))()
-      end
-   end
-end
-
+local apply3funcs = {}
 function torch.apply3(t1, t2, t3, func)
-   local applyfunc = apply3func[tonumber(t1.__nDimension)][tonumber(t2.__nDimension)][tonumber(t3.__nDimension)]
+   local dim1 = tonumber(t1.__nDimension)
+   local dim2 = tonumber(t2.__nDimension)
+   local dim3 = tonumber(t3.__nDimension)
+   apply3funcs[dim1] = apply3funcs[dim1] or {}
+   apply3funcs[dim1][dim2] = apply3funcs[dim1][dim2] or {}
+   local applyfunc = apply3funcs[dim1][dim2][dim3]
+   if not applyfunc then
+      applyfunc = loadstring(generate_apply({dim1,dim2,dim3}))()
+      apply3funcs[dim1][dim2][dim3] = applyfunc
+   end
    applyfunc(t1, t2, t3, func)
 end
