@@ -62,3 +62,53 @@ torch.normal = argcheck(
       return mean + std*v/u
    end
 )
+
+torch.exponential = argcheck(
+   {{name="lambda", type="number"}},
+   function(lambda)
+      return -1. / lambda * math.log(1-torch.uniform())
+   end
+)
+
+torch.cauchy = argcheck(
+   {{name="median", type="number"},
+    {name="sigma", type="number"}},
+   function(median, sigma)
+      return median + sigma * math.tan(math.pi*(torch.uniform()-0.5))
+   end
+)
+
+torch.cauchy = argcheck(
+   {{name="median", type="number"},
+    {name="sigma", type="number"}},
+   function(median, sigma)
+      return median + sigma * math.tan(math.pi*(torch.uniform()-0.5))
+   end
+)
+
+torch.lognormal = argcheck(
+   {{name="mean", type="number"},
+    {name="std", type="number"}},
+   function(mean, std)
+      local zm = mean*mean;
+      local zs = std*std;
+      assert(std > 0, "standard deviation must be strictly positive")
+      return math.exp(torch.normal(math.log(zm/math.sqrt(zs + zm)), math.sqrt(math.log(zs/zm+1)) ))
+   end
+)
+
+torch.geometric = argcheck(
+   {{name="p", type="number"}},
+   function(p)
+      assert(p > 0 and p < 1, "p must be > 0 and < 1")
+      return math.floor(math.log(1-torch.uniform()) / math.log(p)) + 1
+   end
+)
+
+torch.bernoulli = argcheck(
+   {{name="p", type="number"}},
+   function(p)
+      assert(p >= 0 and p <= 1, "p must be >= 0 and <= 1")
+      return torch.uniform() <= p
+   end
+)
