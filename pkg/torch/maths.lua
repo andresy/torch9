@@ -30,6 +30,14 @@ ffi.cdef[[
       void addcdiv_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value);
 
       void gemv_real(char trans, long m, long n, real alpha, real *a, long lda, real *x, long incx, real beta, real *y, long incy);
+
+      void copy_real_byte(real *y, long sty, byte *x, long stx, long sz);
+      void copy_real_char(real *y, long sty, char *x, long stx, long sz);
+      void copy_real_short(real *y, long sty, short *x, long stx, long sz);
+      void copy_real_int(real *y, long sty, int *x, long stx, long sz);
+      void copy_real_long(real *y, long sty, long *x, long stx, long sz);
+      void copy_real_float(real *y, long sty, float *x, long stx, long sz);
+      void copy_real_double(real *y, long sty, double *x, long stx, long sz);
 ]]
 
 local th = ffi.load(paths.concat(paths.install_lua_path,
@@ -942,4 +950,89 @@ register(
       end
    },
    namedispatch
+)
+
+register(
+   "copy",
+   {
+      {
+         {name="dst", type='torch.Tensor'},
+         {name="src", type='torch.Tensor'},
+         self="dst"
+      },
+      function(dst, src)
+         torch.apply2(dst, src,
+                      th.copy_real_real)
+      end,
+
+      {
+         {name="dst", type='torch.Tensor'},
+         {name="src", type='torch.ByteTensor'},
+         self="dst"
+      },
+      function(dst, src)
+         torch.apply2(dst, src,
+                      th.copy_real_byte)
+      end,
+
+      {
+         {name="dst", type='torch.Tensor'},
+         {name="src", type='torch.CharTensor'},
+         self="dst"
+      },
+      function(dst, src)
+         torch.apply2(dst, src,
+                      th.copy_real_char)
+      end,
+
+      {
+         {name="dst", type='torch.Tensor'},
+         {name="src", type='torch.ShortTensor'},
+         self="dst"
+      },
+      function(dst, src)
+         torch.apply2(dst, src,
+                      th.copy_real_short)
+      end,
+
+      {
+         {name="dst", type='torch.Tensor'},
+         {name="src", type='torch.IntTensor'},
+         self="dst"
+      },
+      function(dst, src)
+         torch.apply2(dst, src,
+                      th.copy_real_int)
+      end,
+
+      {
+         {name="dst", type='torch.Tensor'},
+         {name="src", type='torch.LongTensor'},
+         self="dst"
+      },
+      function(dst, src)
+         torch.apply2(dst, src,
+                      th.copy_real_long)
+      end,
+
+      {
+         {name="dst", type='torch.Tensor'},
+         {name="src", type='torch.FloatTensor'},
+         self="dst"
+      },
+      function(dst, src)
+         torch.apply2(dst, src,
+                      th.copy_real_float)
+      end,
+
+      {
+         {name="dst", type='torch.Tensor'},
+         {name="src", type='torch.DoubleTensor'},
+         self="dst"
+      },
+      function(dst, src)
+         torch.apply2(dst, src,
+                      th.copy_real_double)
+      end
+   }
 )

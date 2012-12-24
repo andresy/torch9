@@ -231,7 +231,7 @@ void addcdiv_real(real *z, long strz, real *y, long stry, real *x, long strx, lo
   {                                                                     \
     long i;                                                             \
     for(i = 0; i < sz; i++)                                             \
-      y[i] = NAME(x[i]);                                                \
+      y[i*stry] = NAME(x[i*strx]);                                      \
   }                                                                     \
 
 
@@ -255,15 +255,28 @@ void abs_real(real *y, long stry, real *x, long strx, long sz)
 {
   long i;
   for(i = 0; i < sz; i++)
-    y[i] = fabs(x[i]);
+    y[i*stry] = fabs(x[i*strx]);
 }
 
 void pow_real(real *y, long stry, real *x, long strx, long sz, real value)
 {
   long i;
   for(i = 0; i < sz; i++)
-    y[i] = pow(x[i], value);
+    y[i*stry] = pow(x[i*strx], value);
 }
 
-#undef BASIC_FUNC
-#undef byte
+#define COPY_REAL(REAL)                                                 \
+  void copy_real_##REAL(real *y, long sty, REAL *x, long stx, long sz)  \
+  {                                                                     \
+    long i;                                                             \
+    for(i = 0; i < sz; i++)                                             \
+      y[i*sty] = (real)x[i*stx];                                        \
+  }                                                                     \
+
+COPY_REAL(byte)
+COPY_REAL(char)
+COPY_REAL(short)
+COPY_REAL(int)
+COPY_REAL(long)
+COPY_REAL(float)
+COPY_REAL(double)
