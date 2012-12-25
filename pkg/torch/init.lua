@@ -124,8 +124,10 @@ end
 local env = {ffi=ffi, torch=torch}
 setmetatable(env, {__index=_G})
 
-include('argcheck.lua', env)
-include('argtypes.lua', env)
+local argcheck = require 'torch.argcheck'
+require 'torch.argtypes'
+local argcheckenv = getfenv(argcheck)
+
 require 'torch.Timer'
 includetemplate('Storage.lua', env)
 includetemplate('Tensor.lua', env)

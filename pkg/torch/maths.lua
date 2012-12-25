@@ -1,6 +1,7 @@
 local ffi = require 'ffi'
 local namedispatch = require 'torch.namedispatch'
 local dispatch = require 'torch.dispatch'
+local argcheck = require 'torch.argcheck'
 local torch = require 'torch'
 
 -- DEBUG:

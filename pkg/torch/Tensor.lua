@@ -1,3 +1,4 @@
+local argcheck = require 'torch.argcheck'
 local Tensor = {__typename="torch.Tensor"}
 local mt
 

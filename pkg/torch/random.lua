@@ -1,5 +1,6 @@
 local torch = require 'torch'
 local ffi = require 'ffi'
+local argcheck = require 'torch.argcheck'
 
 ffi.cdef[[
       unsigned long seed();
