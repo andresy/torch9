@@ -73,7 +73,7 @@ function torch.Storage:__tostring()
          table.insert(strt, string.format(format, self[i]))
       end
    end
-   table.insert(strt, string.format('[%s of size %d]\n',  type(self), self:size()))
+   table.insert(strt, string.format('[%s of size %d]\n',  torch.type(self), self:size()))
    local str = table.concat(strt)
    return str
 end
@@ -185,13 +185,13 @@ function torch.Tensor.__tostring(self)
                table.insert(strt, string.format(format, self[i]))
             end
          end
-         table.insert(strt, string.format('[%s of dimension %d]\n', type(self), self:size(1)))
+         table.insert(strt, string.format('[%s of dimension %d]\n', torch.type(self), self:size(1)))
       elseif self:nDimension() == 2 then
          table.insert(strt, printmatrix(self))
-         table.insert(strt, string.format('[%s of dimension %dx%d]\n', type(self), self:size(1), self:size(2)))
+         table.insert(strt, string.format('[%s of dimension %dx%d]\n', torch.type(self), self:size(1), self:size(2)))
       else
          table.insert(strt, printtensor(self))
-         table.insert(strt, string.format('[%s of dimension ', type(self)))
+         table.insert(strt, string.format('[%s of dimension ', torch.type(self)))
          for i=1,self:nDimension() do
             table.insert(strt, self:size(i))
             if i ~= self:nDimension() then

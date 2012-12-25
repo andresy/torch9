@@ -72,30 +72,33 @@ function Storage:rawCopy(data)
    return self
 end
 
-mt = {__index=function(self, k)
+mt = {
+   __index=function(self, k)
+              if type(k) == 'number' then
+                 if k > 0 and k <= self.__size then
+                    return tonumber(self.__data[k-1])
+                 else
+                    error('index out of bounds')
+                 end
+              else
+                 return Storage[k]
+              end
+           end,
+
+   __newindex=function(self, k, v)
                  if type(k) == 'number' then
                     if k > 0 and k <= self.__size then
-                       return tonumber(self.__data[k-1])
+                       self.__data[k-1] = v
                     else
                        error('index out of bounds')
                     end
                  else
-                    return Storage[k]
+                    rawset(self, k, v)
                  end
               end,
-      
-      __newindex=function(self, k, v)
-                    if type(k) == 'number' then
-                       if k > 0 and k <= self.__size then
-                          self.__data[k-1] = v
-                       else
-                          error('index out of bounds')
-                       end
-                    else
-                       rawset(self, k, v)
-                    end
-                 end,
-   }
+
+   __metatable = Storage
+}
 
 torch.Storage = {}
 setmetatable(torch.Storage, {__index=Storage,

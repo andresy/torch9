@@ -23,16 +23,35 @@ function tostring(arg)
    return luatostring(arg)
 end
 
-local luatype = type
-function type(arg)
-   local tname = luatype(arg)
+function torch.type(obj)
+   local tname = type(obj)
    if tname == 'table' then
-      return arg.__typename or tname
+      return obj.__typename or tname
    end
    return tname
 end
+torch.typename = torch.type -- backward compatibility... keep it or not?
 
-torch.typename = type -- backward compatibility... keep it or not?
+function torch.istype(obj, typename)
+   local tname = type(obj)
+   if tname == 'table' then
+      if obj.__typename then
+         obj = getmetatable(obj)
+         while type(obj) == 'table' do
+            if obj.__typename == typename then
+               return true
+            else
+               obj = getmetatable(obj)
+            end
+         end
+         return false
+      else
+         return tname == typename
+      end
+   else
+      return typename == tname
+   end
+end
 
 function torch.getmetatable(str)
    local module, name = str:match('([^%.]+)%.(.+)')   
@@ -84,16 +103,6 @@ function torch.class(tname, parenttname)
    return mt, mpt
 end
 
-function torch.setdefaulttensortype(typename)
-   assert(type(typename) == 'string', 'string expected')
-   if torch.getconstructortable(typename) then
-      torch.Tensor = torch.getconstructortable(typename)
-      torch.Storage = torch.getconstructortable(torch.typename(torch.Tensor(1):storage()))
-   else
-      error(string.format("<%s> is not a string describing a torch object", typename))
-   end
-end
-
 local function includetemplate(file, env)
    env = env or _G
    local filename = paths.thisfile(file, 3)
@@ -119,14 +128,14 @@ local function includetemplate(file, env)
    end   
 end
 
---torch.setdefaulttensortype('torch.DoubleTensor')
-
 local env = {ffi=ffi, torch=torch}
 setmetatable(env, {__index=_G})
 
 local argcheck = require 'torch.argcheck'
 require 'torch.argtypes'
 local argcheckenv = getfenv(argcheck)
+argcheckenv.type = torch.type
+argcheckenv.istype = torch.istype
 
 require 'torch.Timer'
 includetemplate('Storage.lua', env)

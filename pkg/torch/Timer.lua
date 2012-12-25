@@ -114,7 +114,7 @@ function Timer:time()
   }
 end
 
-mt = {__index=Timer}
+mt = {__index=Timer, __metatable=Timer}
 
 torch.Timer = {}
 setmetatable(torch.Timer, {__index=Timer,
