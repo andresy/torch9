@@ -1,0 +1,337 @@
+local argcheck = require 'torch.argcheck'
+
+ffi = require 'ffi'
+
+ffi.cdef[[
+      typedef struct FILE FILE;
+      FILE* fopen(const char *restrict filename, const char *restrict mode);
+      size_t fread(void *restrict ptr, size_t size, size_t nitems, FILE *restrict stream);
+      size_t fwrite(const void *restrict ptr, size_t size, size_t nitems, FILE *restrict stream);
+      int fclose(FILE *stream);
+      int fseek(FILE *stream, long offset, int whence);
+      long ftell(FILE *stream);
+      int fflush(FILE *stream);
+      int fprintf(FILE *restrict stream, const char *restrict format, ...);
+      int fscanf(FILE *restrict stream, const char *restrict format, ...);
+]]
+
+local DiskFile = {
+   __typename="torch.DiskFile",
+   SEEK_SET=0,
+   SEEK_END=2
+}
+
+local function reversememory(dst, src, blocksize, n)
+   if blocksize > 1 then
+      local halfblocksize = blocksize/2
+      local charsrc = ffi.cast('char*', src)
+      local chardst = ffi.cast('char*', dst)
+      for b=0,n-1 do
+         for i=0,halfblocksize-1 do
+            local z = charsrc[i]
+            chardst[i] = charsrc[blocksize-1-i]
+            chardst[blocksize-1-i] = z
+         end
+         charsrc = charsrc + blocksize
+         chardst = chardst + blocksize
+      end
+   end
+end
+
+-- OUCH UGLY le .__metatable sans doute de trop
+-- complique cette affaire
+setmetatable(DiskFile, {
+                __index=getmetatable(torch.File),
+                __metatable=getmetatable(torch.File)
+             })
+
+DiskFile.name =
+   argcheck(
+   {{name="self", type="torch.DiskFile"}},
+   function(self)
+      assert(self.__handle, 'attempt to use a closed file')
+      return self.__name
+   end
+)
+
+DiskFile.isOpened =
+   argcheck(
+   {{name="self", type="torch.DiskFile"}},
+   function(self)
+      assert(self.__handle, 'attempt to use a closed file')
+      return self.__handle ~= nil
+   end
+)
+
+DiskFile.synchronize =
+   argcheck(
+   {{name="self", type="torch.DiskFile"}},
+   function(self)
+      assert(self.__handle, 'attempt to use a closed file')
+      ffi.C.fflush(self.__handle)
+      return self
+   end
+)
+
+DiskFile.seek =
+   argcheck(
+   {{name="self", type="torch.DiskFile"},
+    {name="position", type="number"}},
+   function(self, position)
+      assert(self.__handle, 'attempt to use a closed file')
+      if ffi.C.fseek(self.__handle, position, self.SEEK_SET) < 0 then
+         self.__hasError = 1
+         if not self.__isQuiet then
+            error('unable to seek in file')
+         end
+      end
+      return self
+   end
+)
+
+DiskFile.seekEnd =
+   argcheck(
+   {{name="self", type="torch.DiskFile"}},
+   function(self)
+      assert(self.__handle, 'attempt to use a closed file')
+      if ffi.C.fseek(self.__handle, 0, self.SEEK_END) < 0 then
+         self.__hasError = 1
+         if not self.__isQuiet then
+            error('unable to seek in file')
+         end
+      end
+      return self
+   end
+)
+
+DiskFile.position =
+   argcheck(
+   {{name="self", type="torch.DiskFile"}},
+   function(self)
+      assert(self.__handle, 'attempt to use a closed file')
+      local position = ffi.C.ftell(self.__handle)
+      if position < 0 then
+         self.__hasError = 1
+         if not self.__isQuiet then
+            error('unable to get position in file')
+         end
+      end
+      return position
+   end
+)
+
+DiskFile.close =
+   argcheck(
+   {{name="self", type="torch.DiskFile"}},
+   function(self)
+      assert(self.__handle, 'attempt to use a closed file')
+      ffi.C.fclose(self.__handle)
+      self.__handle = nil
+      return self
+   end
+)
+
+DiskFile.__write =
+   argcheck(
+   {{name="self", type="torch.DiskFile"},
+    {name="data", type="cdata"},
+    {name="size", type="number"}},
+   function(self, data, size)
+      assert(self.__handle, 'attempt to write in a closed file')
+      assert(self.__isWritable, 'read-only file')
+      if self.__isNativeEncoding then
+         return tonumber(ffi.C.fwrite(data, ffi.sizeof(data), size, self.__handle))
+      else
+         local buffer = ffi.C.malloc(ffi.sizeof(data)*size)
+         reversememory(buffer, data, ffi.sizeof(data), size)
+         local n = tonumber(ffi.C.fwrite(buffer, ffi.sizeof(data), size, self.__handle))
+         ffi.C.free(buffer)
+         return n
+      end
+   end
+)
+
+DiskFile.isLittleEndianCPU = 
+   argcheck(
+   {},
+   function()
+      local x = ffi.new('int[1]', 7)
+      local ptr = ffi.cast('char*', x)
+      if ptr[0] == 0 then
+         return false
+      else
+         return true
+      end
+   end
+)
+
+DiskFile.isBigEndianCPU =
+   argcheck(
+   {},
+   function()
+      return not DiskFile.isLittleEndianCPU()
+   end
+)
+
+DiskFile.nativeEndianEncoding =
+   argcheck(
+   {{name="self", type="torch.DiskFile"}},
+   function(self)
+      assert(self.__handle, 'attempt to write in a closed file')
+      self.__isNativeEncoding = true
+      return self
+   end
+)
+
+DiskFile.littleEndianEncoding =
+   argcheck(
+   {{name="self", type="torch.DiskFile"}},
+   function(self)
+      assert(self.__handle, 'attempt to write in a closed file')
+      self.__isNativeEncoding = DiskFile.isLittleEndianCPU()
+      return self
+   end
+)
+
+DiskFile.bigEndianEncoding =
+   argcheck(
+   {{name="self", type="torch.DiskFile"}},
+   function(self)
+      assert(self.__handle, 'attempt to write in a closed file')
+      self.__isNativeEncoding = DiskFile.isBigEndianCPU()
+      return self
+   end
+)
+
+DiskFile.__read =
+   argcheck(
+   {{name="self", type="torch.DiskFile"},
+    {name="data", type="cdata"},
+    {name="size", type="number"}},
+   function(self, data, size)
+      assert(self.__handle, 'attempt to write in a closed file')
+      assert(self.__isReadable, 'write-only file')
+      local n = tonumber(ffi.C.fread(data, ffi.sizeof(data), size, self.__handle))
+      if not self.__isNativeEncoding then
+         reversememory(data, data, ffi.sizeof(data), n)
+      end
+      return n
+   end
+)
+
+local format2cast = {
+   ['%uc'] = ffi.typeof('unsigned char'),
+   ['%c'] = ffi.typeof('char'),
+   ['%hd'] = ffi.typeof('short'),
+   ['%d'] = ffi.typeof('int'),
+   ['%ld'] = ffi.typeof('long'),
+   ['%f'] = ffi.typeof('float'),
+   ['%lf'] = ffi.typeof('double'),
+}
+
+DiskFile.__printf =
+   argcheck(
+   {{name="self", type="torch.DiskFile"},
+    {name="format", type="string"},
+    {name="data", type="cdata"},
+    {name="size", type="number"}},
+   function(self, format, data, size)
+      assert(self.__handle, 'attempt to write in a closed file')
+      assert(self.__isWritable, 'read-only file')
+      local n = 0
+      local cast = format2cast[format]
+      for i=0,size-1 do
+         local ret = ffi.C.fprintf(self.__handle, format, cast(data[i]))
+         if ret <= 0 then
+            break
+         else
+            n = n + 1
+         end
+         if self.__isAutoSpacing and i < size-1 then
+            ffi.C.fprintf(self.__handle, ' ')
+         end
+      end
+      if self.__isAutoSpacing and n > 0 then
+         ffi.C.fprintf(self.__handle, '\n')
+      end
+      return n
+   end
+)
+
+DiskFile.__scanf =
+   argcheck(
+   {{name="self", type="torch.DiskFile"},
+    {name="format", type="string"},
+    {name="data", type="cdata"},
+    {name="size", type="number"}},
+   function(self, format, data, size)
+      assert(self.__handle, 'attempt to write in a closed file')
+      assert(self.__isReadable, 'write-only file')
+      local n = 0
+      for i=0,size-1 do
+         local ret = ffi.C.fscanf(self.__handle, format, data+i)
+         if ret <= 0 then
+            break
+         else
+            n = n + 1
+         end
+      end
+      return n
+   end
+)
+
+DiskFile.new =
+   argcheck(
+   {{name="name", type="string"},
+    {name="mode", type="string", default='r'},
+    {name="quiet", type="boolean", default=false}},
+   function(name, mode, quiet)
+      assert(mode == 'r' or mode == 'w' or mode == 'rw', 'invalid mode (r, w or rw expected)')
+
+      local handle
+      if mode == 'rw' then
+         handle = ffi.C.fopen(name, 'r+b')
+         if not handle then
+            handle = ffi.C.fopen(name, 'wb')
+            if handle then
+               ffi.C.fclose(handle)
+               handle = ffi.C.fopen(name, 'r+b')
+            end
+         end
+      else
+         handle = ffi.C.fopen(name, mode == 'r' and 'rb' or 'wb')
+      end
+
+      if not handle then
+         if quiet then
+            return
+         else
+            error(string.format('cannot open file <%s> in mode <%s>)', name, mode))
+         end
+      end
+
+      self = {}
+      self.__handle = handle
+      self.__name = name
+      self.__isQuiet = quiet
+      self.__isReadable = (mode == 'r') or (mode == 'rw')
+      self.__isWritable = (mode == 'w') or (mode == 'rw')
+      self.__isBinary = false
+      self.__isNativeEncoding = true
+      self.__isAutoSpacing = true
+      self.__hasError = false
+      setmetatable(self, {__index=DiskFile, __metatable=DiskFile})
+
+      ffi.gc(self.__handle, ffi.C.fclose)
+
+      return self
+   end
+)
+
+torch.DiskFile = {}
+setmetatable(torch.DiskFile, {__index=DiskFile,
+                              __metatable=DiskFile,
+                              __newindex=DiskFile,
+                              __call=function(self, ...)
+                                        return DiskFile.new(...)
+                                     end})

@@ -147,6 +147,9 @@ require('torch.maths')
 require('torch.random')
 includetemplate('print.lua', env)
 
+require 'torch.file'
+require 'torch.diskfile'
+
 torch.Tensor = torch.DoubleTensor
 
 return torch
