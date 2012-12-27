@@ -137,16 +137,18 @@ DiskFile.__write =
    argcheck(
    {{name="self", type="torch.DiskFile"},
     {name="data", type="cdata"},
+    {name="elemsize", type="number"},
     {name="size", type="number"}},
-   function(self, data, size)
+   function(self, data, elemsize, size)
       assert(self.__handle, 'attempt to write in a closed file')
       assert(self.__isWritable, 'read-only file')
       if self.__isNativeEncoding then
-         return tonumber(ffi.C.fwrite(data, ffi.sizeof(data), size, self.__handle))
+         return tonumber(ffi.C.fwrite(data, elemsize, size, self.__handle))
       else
-         local buffer = ffi.C.malloc(ffi.sizeof(data)*size)
-         reversememory(buffer, data, ffi.sizeof(data), size)
-         local n = tonumber(ffi.C.fwrite(buffer, ffi.sizeof(data), size, self.__handle))
+         local buffer = ffi.C.malloc(elemsize*size)
+         assert(buffer ~= nil, 'out of memory')
+         reversememory(buffer, data, elemsize, size)
+         local n = tonumber(ffi.C.fwrite(buffer, elemsize, size, self.__handle))
          ffi.C.free(buffer)
          return n
       end
@@ -209,13 +211,14 @@ DiskFile.__read =
    argcheck(
    {{name="self", type="torch.DiskFile"},
     {name="data", type="cdata"},
+    {name="elemsize", type="number"},
     {name="size", type="number"}},
-   function(self, data, size)
+   function(self, data, elemsize, size)
       assert(self.__handle, 'attempt to write in a closed file')
       assert(self.__isReadable, 'write-only file')
-      local n = tonumber(ffi.C.fread(data, ffi.sizeof(data), size, self.__handle))
+      local n = tonumber(ffi.C.fread(data, elemsize, size, self.__handle))
       if not self.__isNativeEncoding then
-         reversememory(data, data, ffi.sizeof(data), n)
+         reversememory(data, data, elemsize, n)
       end
       return n
    end
@@ -292,9 +295,8 @@ DiskFile.__gets =
       local buffsize = 1024
       local buffer = ffi.cast('char*', ffi.C.malloc(buffsize))
       while true do
-         assert(buffer, 'out of memory')
-
-         if not ffi.C.fgets(buffer+size, buffsize, self.__handle) then
+         assert(buffer ~= nil, 'out of memory')
+         if ffi.C.fgets(buffer+size, buffsize, self.__handle) == nil then
             break
          end
          local l = tonumber(ffi.C.strlen(buffer+size))
@@ -306,9 +308,13 @@ DiskFile.__gets =
             break
          end
       end
-      local str = ffi.string(buffer, size)
-      ffi.C.free(buffer)
-      return str
+      if size > 0 then
+         local str = ffi.string(buffer, size)
+         ffi.C.free(buffer)
+         return str
+      else
+         ffi.C.free(buffer)
+      end
    end
 )
 

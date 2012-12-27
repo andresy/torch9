@@ -53,13 +53,13 @@ File.isBinary =
 )
 
 local types = {
-   {Type="Byte", ctype=ffi.typeof("unsigned char[1]"), ptype="%uc", Storage=torch.ByteStorage},
-   {Type="Char", ctype=ffi.typeof("char[1]"), ptype="%c", Storage=torch.CharStorage},
-   {Type="Short", ctype=ffi.typeof("short[1]"), ptype="%hd", Storage=torch.ShortStorage},
-   {Type="Int", ctype=ffi.typeof("int[1]"), ptype="%d", Storage=torch.IntStorage},
-   {Type="Long", ctype=ffi.typeof("long[1]"), ptype="%ld", Storage=torch.LongStorage},
-   {Type="Float", ctype=ffi.typeof("float[1]"), ptype="%f", Storage=torch.FloatStorage},
-   {Type="Double", ctype=ffi.typeof("double[1]"), ptype="%lf", Storage=torch.DoubleStorage},
+   {Type="Byte", ctype=ffi.typeof("unsigned char[1]"), ptype="%uc", Storage=torch.ByteStorage, sizeof=ffi.sizeof('unsigned char')},
+   {Type="Char", ctype=ffi.typeof("char[1]"), ptype="%c", Storage=torch.CharStorage, sizeof=ffi.sizeof('char')},
+   {Type="Short", ctype=ffi.typeof("short[1]"), ptype="%hd", Storage=torch.ShortStorage, sizeof=ffi.sizeof('short')},
+   {Type="Int", ctype=ffi.typeof("int[1]"), ptype="%d", Storage=torch.IntStorage, sizeof=ffi.sizeof('int')},
+   {Type="Long", ctype=ffi.typeof("long[1]"), ptype="%ld", Storage=torch.LongStorage, sizeof=ffi.sizeof('long')},
+   {Type="Float", ctype=ffi.typeof("float[1]"), ptype="%f", Storage=torch.FloatStorage, sizeof=ffi.sizeof('float')},
+   {Type="Double", ctype=ffi.typeof("double[1]"), ptype="%lf", Storage=torch.DoubleStorage, sizeof=ffi.sizeof('double')},
 }
 
 for _, ttype in ipairs(types) do
@@ -67,7 +67,7 @@ for _, ttype in ipairs(types) do
    local function write(self, cdata, size)
       local n
       if self.__isBinary then
-         n = self:__write(cdata, size)
+         n = self:__write(cdata, ttype.sizeof, size)
       else
          n = self:__printf(ttype.ptype, cdata, size)
       end
@@ -98,7 +98,7 @@ for _, ttype in ipairs(types) do
    local function read(self, cdata, size)
       local n
       if self.__isBinary then
-         n = self:__read(cdata, size)
+         n = self:__read(cdata, ttype.sizeof, size)
       else
          n = self:__scanf(ttype.ptype, cdata, size)
       end
@@ -202,7 +202,57 @@ File.clearError =
       return self
    end
 )
-    
+
+local function readchars(self, n)
+   local buffsize = 1024
+   local buffer = ffi.cast('char*', ffi.C.malloc(buffsize))
+   local size = 0
+   while true do
+      assert(buffer ~= nil, 'out of memory')
+      local rlen = math.min(buffsize, n)
+      local nr = self:__read(buffer+size, 1, rlen)
+      if nr > 0 then
+         size = size + nr
+         n = n - nr
+      end
+      if n > 0 and nr == rlen then
+         buffer = ffi.cast('char*', ffi.C.realloc(buffer, size+buffsize))
+      else
+         break
+      end
+   end
+   if size > 0 then
+      local str = ffi.string(buffer, size)
+      ffi.C.free(buffer)
+      return str
+   else
+      ffi.C.free(buffer)
+   end
+end
+
+File.read =
+   argcheck(
+   {{name="self", type="torch.File"},
+    {name="format", type="string"}},
+   function(self, format)
+      if format:match('^%*n') then
+         local p = ffi.new('double[1]')
+         local n = self:__scanf("%lf", p, 1)
+         if n == 1 then
+            return p[0]
+         end
+      elseif format:match('^%*a') then
+         return readchars(self, math.huge)
+      elseif format:match('^%*l') then
+         return self:__gets()
+      elseif tonumber(format) then
+         return readchars(self, tonumber(format))
+      else
+         error('invalid format')
+      end
+   end
+)
+
 torch.File = {}
 setmetatable(torch.File, {__index=File,
                           __metatable=File,
