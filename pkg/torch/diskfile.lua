@@ -13,6 +13,8 @@ ffi.cdef[[
       int fflush(FILE *stream);
       int fprintf(FILE *restrict stream, const char *restrict format, ...);
       int fscanf(FILE *restrict stream, const char *restrict format, ...);
+      char *fgets(char *restrict s, int n, FILE *restrict stream);
+      size_t strlen(const char *s);
 ]]
 
 local DiskFile = {
@@ -277,6 +279,36 @@ DiskFile.__scanf =
          end
       end
       return n
+   end
+)
+
+DiskFile.__gets =
+   argcheck(
+   {{name="self", type="torch.DiskFile"}},
+   function(self)
+      assert(self.__handle, 'attempt to write in a closed file')
+      assert(self.__isReadable, 'write-only file')
+      local size = 0
+      local buffsize = 1024
+      local buffer = ffi.cast('char*', ffi.C.malloc(buffsize))
+      while true do
+         assert(buffer, 'out of memory')
+
+         if not ffi.C.fgets(buffer+size, buffsize, self.__handle) then
+            break
+         end
+         local l = tonumber(ffi.C.strlen(buffer+size))
+         if l == 0 or string.char(buffer[size+l-1]) ~= '\n' then
+            size = size + l
+            buffer = ffi.cast('char*', ffi.C.realloc(buffer, size+buffsize))
+         else
+            size = size + l - 1 -- do not add eol
+            break
+         end
+      end
+      local str = ffi.string(buffer, size)
+      ffi.C.free(buffer)
+      return str
    end
 )
 
