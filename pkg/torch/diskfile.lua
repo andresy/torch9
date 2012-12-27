@@ -223,8 +223,8 @@ DiskFile.__read =
 )
 
 local format2cast = {
-   ['%uc'] = ffi.typeof('unsigned char'),
-   ['%c'] = ffi.typeof('char'),
+   ['%hhu'] = ffi.typeof('unsigned char'),
+   ['%hhd'] = ffi.typeof('char'),
    ['%hd'] = ffi.typeof('short'),
    ['%d'] = ffi.typeof('int'),
    ['%ld'] = ffi.typeof('long'),

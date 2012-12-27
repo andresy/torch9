@@ -53,8 +53,8 @@ File.isBinary =
 )
 
 local types = {
-   {Type="Byte", ctype=ffi.typeof("unsigned char[1]"), ptype="%uc", Storage=torch.ByteStorage, sizeof=ffi.sizeof('unsigned char')},
-   {Type="Char", ctype=ffi.typeof("char[1]"), ptype="%c", Storage=torch.CharStorage, sizeof=ffi.sizeof('char')},
+   {Type="Byte", ctype=ffi.typeof("unsigned char[1]"), ptype="%hhu", Storage=torch.ByteStorage, sizeof=ffi.sizeof('unsigned char')},
+   {Type="Char", ctype=ffi.typeof("char[1]"), ptype="%hhd", Storage=torch.CharStorage, sizeof=ffi.sizeof('char')},
    {Type="Short", ctype=ffi.typeof("short[1]"), ptype="%hd", Storage=torch.ShortStorage, sizeof=ffi.sizeof('short')},
    {Type="Int", ctype=ffi.typeof("int[1]"), ptype="%d", Storage=torch.IntStorage, sizeof=ffi.sizeof('int')},
    {Type="Long", ctype=ffi.typeof("long[1]"), ptype="%ld", Storage=torch.LongStorage, sizeof=ffi.sizeof('long')},
