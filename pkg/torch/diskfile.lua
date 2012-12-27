@@ -24,19 +24,17 @@ local DiskFile = {
 }
 
 local function reversememory(dst, src, blocksize, n)
-   if blocksize > 1 then
-      local halfblocksize = blocksize/2
-      local charsrc = ffi.cast('char*', src)
-      local chardst = ffi.cast('char*', dst)
-      for b=0,n-1 do
-         for i=0,halfblocksize-1 do
-            local z = charsrc[i]
-            chardst[i] = charsrc[blocksize-1-i]
-            chardst[blocksize-1-i] = z
-         end
-         charsrc = charsrc + blocksize
-         chardst = chardst + blocksize
+   local halfblocksize = blocksize/2
+   local charsrc = ffi.cast('char*', src)
+   local chardst = ffi.cast('char*', dst)
+   for b=0,n-1 do
+      for i=0,halfblocksize-1 do
+         local z = charsrc[i]
+         chardst[i] = charsrc[blocksize-1-i]
+         chardst[blocksize-1-i] = z
       end
+      charsrc = charsrc + blocksize
+      chardst = chardst + blocksize
    end
 end
 
@@ -142,7 +140,7 @@ DiskFile.__write =
    function(self, data, elemsize, size)
       assert(self.__handle, 'attempt to write in a closed file')
       assert(self.__isWritable, 'read-only file')
-      if self.__isNativeEncoding then
+      if self.__isNativeEncoding or elemsize == 1 then
          return tonumber(ffi.C.fwrite(data, elemsize, size, self.__handle))
       else
          local buffer = ffi.C.malloc(elemsize*size)
@@ -217,7 +215,7 @@ DiskFile.__read =
       assert(self.__handle, 'attempt to write in a closed file')
       assert(self.__isReadable, 'write-only file')
       local n = tonumber(ffi.C.fread(data, elemsize, size, self.__handle))
-      if not self.__isNativeEncoding then
+      if not self.__isNativeEncoding and elemsize > 1 then
          reversememory(data, data, elemsize, n)
       end
       return n
@@ -252,12 +250,9 @@ DiskFile.__printf =
          else
             n = n + 1
          end
-         if self.__isAutoSpacing and i < size-1 then
+         if i < size-1 then
             ffi.C.fprintf(self.__handle, ' ')
          end
-      end
-      if self.__isAutoSpacing and n > 0 then
-         ffi.C.fprintf(self.__handle, '\n')
       end
       return n
    end

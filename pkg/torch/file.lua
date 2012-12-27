@@ -70,6 +70,10 @@ for _, ttype in ipairs(types) do
          n = self:__write(cdata, ttype.sizeof, size)
       else
          n = self:__printf(ttype.ptype, cdata, size)
+         if self.__isAutoSpacing and n > 0 then
+            local ret = '\n'
+            self:__write(ffi.cast('char*', ret), 1, 1)
+         end
       end
       if n ~= size then
          if not self.__isQuiet then
@@ -250,6 +254,23 @@ File.read =
       else
          error('invalid format')
       end
+   end
+)
+
+File.write =
+   argcheck(
+   {{name="self", type="torch.File"},
+    {name="value", type="string"}},
+   function(self, value)
+      self:__write(ffi.cast('char*', value), 1, #value)
+   end,
+
+   {{name="self", type="torch.File"},
+    {name="value", type="number"}},
+   function(self, value)
+      local p = ffi.new('double[1]')
+      p[0] = value
+      self:__printf("%lf", p, 1)
    end
 )
 
