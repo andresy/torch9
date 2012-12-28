@@ -290,9 +290,11 @@ DiskFile.__gets =
       local size = 0
       local buffsize = 1024
       local buffer = ffi.cast('char*', ffi.C.malloc(buffsize))
+      local eof
       while true do
          assert(buffer ~= nil, 'out of memory')
          if ffi.C.fgets(buffer+size, buffsize, self.__handle) == nil then
+            eof = true
             break
          end
          local l = tonumber(ffi.C.strlen(buffer+size))
@@ -304,7 +306,7 @@ DiskFile.__gets =
             break
          end
       end
-      if size > 0 then
+      if not eof then
          local str = ffi.string(buffer, size)
          ffi.C.free(buffer)
          return str

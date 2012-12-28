@@ -214,6 +214,7 @@ MemoryFile.__gets =
       local size = self.__size-self.__position
       local buffer = self.__buffer + self.__position
       local ret = string.byte('\n')
+      local eof = (size == 0)
       for i=0,size-1 do
          if buffer[i] == ret then
             size = i + 1
@@ -226,7 +227,7 @@ MemoryFile.__gets =
          size = size - 1
       end
 
-      if size > 0 then
+      if not eof then
          local str = ffi.string(buffer, size)
          return str
       end
