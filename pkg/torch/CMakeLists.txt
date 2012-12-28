@@ -6,7 +6,7 @@ INCLUDE(TorchTemplate)
 
 SET(luasrc init.lua argcheck.lua argtypes.lua Timer.lua Storage.lua
 Tensor.lua apply.lua dimapply.lua iterator.lua print.lua dispatch.lua
-namedispatch.lua random.lua file.lua diskfile.lua)
+namedispatch.lua random.lua file.lua diskfile.lua memoryfile.lua)
 
 SET(mathcfiles random.c)
 

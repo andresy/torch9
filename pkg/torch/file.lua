@@ -58,8 +58,8 @@ local types = {
    {Type="Short", ctype=ffi.typeof("short[1]"), ptype="%hd", Storage=torch.ShortStorage, sizeof=ffi.sizeof('short')},
    {Type="Int", ctype=ffi.typeof("int[1]"), ptype="%d", Storage=torch.IntStorage, sizeof=ffi.sizeof('int')},
    {Type="Long", ctype=ffi.typeof("long[1]"), ptype="%ld", Storage=torch.LongStorage, sizeof=ffi.sizeof('long')},
-   {Type="Float", ctype=ffi.typeof("float[1]"), ptype="%f", Storage=torch.FloatStorage, sizeof=ffi.sizeof('float')},
-   {Type="Double", ctype=ffi.typeof("double[1]"), ptype="%lf", Storage=torch.DoubleStorage, sizeof=ffi.sizeof('double')},
+   {Type="Float", ctype=ffi.typeof("float[1]"), ptype="%g", Storage=torch.FloatStorage, sizeof=ffi.sizeof('float')},
+   {Type="Double", ctype=ffi.typeof("double[1]"), ptype="%lg", Storage=torch.DoubleStorage, sizeof=ffi.sizeof('double')},
 }
 
 for _, ttype in ipairs(types) do

@@ -149,6 +149,7 @@ includetemplate('print.lua', env)
 
 require 'torch.file'
 require 'torch.diskfile'
+require 'torch.memoryfile'
 
 torch.Tensor = torch.DoubleTensor
 
