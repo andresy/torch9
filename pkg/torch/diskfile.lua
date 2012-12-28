@@ -109,7 +109,7 @@ DiskFile.position =
    {{name="self", type="torch.DiskFile"}},
    function(self)
       assert(self.__handle, 'attempt to use a closed file')
-      local position = ffi.C.ftell(self.__handle)
+      local position = tonumber(ffi.C.ftell(self.__handle))
       if position < 0 then
          self.__hasError = 1
          if not self.__isQuiet then
@@ -125,6 +125,7 @@ DiskFile.close =
    {{name="self", type="torch.DiskFile"}},
    function(self)
       assert(self.__handle, 'attempt to use a closed file')
+      ffi.gc(self.__handle, nil)
       ffi.C.fclose(self.__handle)
       self.__handle = nil
       return self
@@ -228,8 +229,8 @@ local format2cast = {
    ['%hd'] = ffi.typeof('short'),
    ['%d'] = ffi.typeof('int'),
    ['%ld'] = ffi.typeof('long'),
-   ['%f'] = ffi.typeof('float'),
-   ['%lf'] = ffi.typeof('double'),
+   ['%g'] = ffi.typeof('float'),
+   ['%lg'] = ffi.typeof('double'),
 }
 
 DiskFile.__printf =
@@ -324,9 +325,9 @@ DiskFile.new =
       local handle
       if mode == 'rw' then
          handle = ffi.C.fopen(name, 'r+b')
-         if not handle then
+         if handle == nil then
             handle = ffi.C.fopen(name, 'wb')
-            if handle then
+            if handle ~= nil then
                ffi.C.fclose(handle)
                handle = ffi.C.fopen(name, 'r+b')
             end
@@ -335,7 +336,7 @@ DiskFile.new =
          handle = ffi.C.fopen(name, mode == 'r' and 'rb' or 'wb')
       end
 
-      if not handle then
+      if handle == nil then
          if quiet then
             return
          else
