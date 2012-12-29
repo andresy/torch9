@@ -38,8 +38,7 @@ torch.metatable =
 )
 
 torch.constructor =
-   argcheck{
-   debug=true,
+   argcheck(
    {{name="metatable", type="table"},
     {name="constructor", type="string", default="new"}},
    function(metatable, constructor)
@@ -56,4 +55,4 @@ torch.constructor =
                    })
       return ct
    end
-}
+)
