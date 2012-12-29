@@ -1,6 +1,5 @@
 local Storage = {__typename="torch.Storage"}
 local argcheck = require 'torch.argcheck'
-local mt
 
 local th = ffi.load(paths.concat(paths.install_lua_path,
                                  'torch',
@@ -12,7 +11,7 @@ local realptrct = ffi.typeof('real*')
 
 local function rawInitWithSize(size)
    local self = {}
-   setmetatable(self, mt)
+   setmetatable(self, Storage)
    if size > 0 then
       self.__data = ffi.cast(realptrct, ffi.C.malloc(realsz*size))
       ffi.gc(self.__data, ffi.C.free)
@@ -138,33 +137,29 @@ Storage.copy =
    end
 )
 
-mt = {
-   __index=function(self, k)
-              if type(k) == 'number' then
-                 if k > 0 and k <= self.__size then
-                    return tonumber(self.__data[k-1])
-                 else
-                    error('index out of bounds')
-                 end
-              else
-                 return Storage[k]
-              end
-           end,
+function Storage:__index(k)
+   if type(k) == 'number' then
+      if k > 0 and k <= self.__size then
+         return tonumber(self.__data[k-1])
+      else
+         error('index out of bounds')
+      end
+   else
+      return Storage[k]
+   end
+end
 
-   __newindex=function(self, k, v)
-                 if type(k) == 'number' then
-                    if k > 0 and k <= self.__size then
-                       self.__data[k-1] = v
-                    else
-                       error('index out of bounds')
-                    end
-                 else
-                    rawset(self, k, v)
-                 end
-              end,
-
-   __metatable = Storage
-}
+function Storage:__newindex(k, v)
+   if type(k) == 'number' then
+      if k > 0 and k <= self.__size then
+         self.__data[k-1] = v
+      else
+         error('index out of bounds')
+      end
+   else
+      rawset(self, k, v)
+   end
+end
 
 torch.Storage = {}
 setmetatable(torch.Storage, {__index=Storage,
@@ -173,4 +168,3 @@ setmetatable(torch.Storage, {__index=Storage,
                              __call=function(self, ...)
                                        return Storage.new(...)
                                     end})
-

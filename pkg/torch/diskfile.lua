@@ -22,6 +22,8 @@ local DiskFile = {
    SEEK_SET=0,
    SEEK_END=2
 }
+DiskFile.__index = DiskFile
+setmetatable(DiskFile, getmetatable(torch.File))
 
 local function reversememory(dst, src, blocksize, n)
    local halfblocksize = blocksize/2
@@ -37,13 +39,6 @@ local function reversememory(dst, src, blocksize, n)
       chardst = chardst + blocksize
    end
 end
-
--- OUCH UGLY le .__metatable sans doute de trop
--- complique cette affaire
-setmetatable(DiskFile, {
-                __index=getmetatable(torch.File),
-                __metatable=getmetatable(torch.File)
-             })
 
 DiskFile.name =
    argcheck(

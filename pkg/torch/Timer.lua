@@ -50,7 +50,7 @@ int getrusage(int who, struct rusage *r_usage);
 ]])
 
 local Timer = {__typename="torch.Timer", RUSAGE_SELF=0, RUSAGE_CHILDREN=-1}
-local mt
+Timer.__index = Timer
 
 function Timer.real()
    local time = ffi.new("struct timeval")
@@ -72,7 +72,7 @@ end
 
 function Timer.new()
    local self = {}
-   setmetatable(self, mt)
+   setmetatable(self, Timer)
    self:reset()
    return self
 end
@@ -113,8 +113,6 @@ function Timer:time()
      sys  = self.__isRunning and (self.__totalsystime + Timer.sys() - self.__startsystime) or self.__totalsystime
   }
 end
-
-mt = {__index=Timer, __metatable=Timer}
 
 torch.Timer = {}
 setmetatable(torch.Timer, {__index=Timer,

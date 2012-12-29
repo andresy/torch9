@@ -10,6 +10,8 @@ ffi.cdef[[
 local MemoryFile = {
    __typename="torch.MemoryFile",
 }
+MemoryFile.__index = MemoryFile
+setmetatable(MemoryFile, getmetatable(torch.File))
 
 local function grow(self, size)
    if self.__position + size + 1 >= self.__buffersize then
@@ -30,12 +32,6 @@ local function grow(self, size)
       self.__buffer[gsz-1] = 0
    end
 end
--- OUCH UGLY le .__metatable sans doute de trop
--- complique cette affaire
-setmetatable(MemoryFile, {
-                __index=getmetatable(torch.File),
-                __metatable=getmetatable(torch.File)
-             })
 
 MemoryFile.isOpened =
    argcheck(

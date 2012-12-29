@@ -1,8 +1,6 @@
 local argcheck = require 'torch.argcheck'
 local Tensor = {__typename="torch.Tensor"}
 
-local mt
-
 local longvlact = ffi.typeof('long[?]')
 
 local function carray2table(arr, size)
@@ -18,7 +16,7 @@ local function rawInit()
    self.__storageOffset = 0
    self.__nDimension = 0
    self.__flag = 0
-   setmetatable(self, mt)
+   setmetatable(self, Tensor)
    return self
 end
 
@@ -478,24 +476,19 @@ Tensor.nElement = argcheck{
    end
 }
 
-mt = {
-   __index=function(self, k)
-              if type(k) == 'number' then
-                 if self.__nDimension == 1 then
-                    return self.__storage[tonumber(k+self.__storageOffset)]
-                 elseif self.__nDimension > 1 then
-                    return self:select(1, k)
-                 else
-                    error('empty tensor')
-                 end
-              else
-                 return Tensor[k]
-              end
-           end,
-
-   __metatable = Tensor
-}
-
+function Tensor:__index(k)
+   if type(k) == 'number' then
+      if self.__nDimension == 1 then
+         return self.__storage[tonumber(k+self.__storageOffset)]
+      elseif self.__nDimension > 1 then
+         return self:select(1, k)
+      else
+         error('empty tensor')
+      end
+   else
+      return Tensor[k]
+   end
+end
 
 torch.Tensor = {}
 setmetatable(torch.Tensor, {__index=Tensor,

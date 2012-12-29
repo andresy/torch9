@@ -1,5 +1,6 @@
 local argcheck = require 'torch.argcheck'
 local File = {__typename="torch.File"}
+File.__index = File
 local ffi = require 'ffi'
 
 -- should initialize basic variables (__isBinary, __isAutoSpacing... here in a basic constructor)
