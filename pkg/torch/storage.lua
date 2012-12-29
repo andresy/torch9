@@ -81,6 +81,24 @@ function Storage:rawCopy(data)
    return self
 end
 
+if "Storage" == "CharStorage" or "Storage" == "ByteStorage" then
+   Storage.string =
+      argcheck(
+      {{name="self", type="torch.Storage"}},
+      function(self)
+         return ffi.string(self.__data, self.__size)
+      end,
+
+      {{name="self", type="torch.Storage"},
+       {name="data", type="string"}},
+      function(self, data)
+         self:resize(#data)
+         ffi.copy(self.__data, ffi.cast('char*', data), self.__size)
+         return self
+      end
+   )
+end
+
 Storage.copy =
    argcheck(
    {{name="self", type='torch.Storage'},
