@@ -9,7 +9,7 @@ torch.class =
     {name="parentname", type="string", opt=true}},
    function(name, parentname)   
       assert(not classes[name], 'class <%s> already exists', name)
-      local class = {__typename = name}
+      local class = {__typename = name, __version=1}
       class.__index = class
       class.__init = function()
                         local t = {}

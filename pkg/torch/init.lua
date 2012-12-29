@@ -35,6 +35,8 @@ require 'torch.file'
 require 'torch.diskfile'
 require 'torch.memoryfile'
 
+require 'torch.serialization'
+
 torch.Tensor = torch.DoubleTensor
 
 return torch
