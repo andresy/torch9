@@ -11,7 +11,7 @@ torch.typename = torch.type -- backward compatibility... keep it or not?
 
 function torch.istype(obj, typename)
    local tname = type(obj)
-   if tname == 'table' then
+   if tname == 'table' and typename ~= 'table' then
       if obj.__typename then
          obj = getmetatable(obj)
          while type(obj) == 'table' do
