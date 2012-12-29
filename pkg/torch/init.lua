@@ -141,8 +141,6 @@ require 'torch.Timer'
 includetemplate('Storage.lua', env)
 includetemplate('Tensor.lua', env)
 
-include('iterator.lua', env)
-
 require 'torch.apply'
 require 'torch.dimapply'
 require 'torch.maths'
