@@ -3,7 +3,7 @@ local argcheck = require 'torch.argcheck'
 local print = require 'torch.print'
 local ffi = require 'ffi'
 
-local Storage = {__typename="torch.Storage"}
+local Storage = torch.class('torch.Storage')
 
 local th = ffi.load(paths.concat(paths.install_lua_path,
                                  'torch',
@@ -14,8 +14,7 @@ local realsz = ffi.sizeof('real')
 local realptrct = ffi.typeof('real*')
 
 local function rawInitWithSize(size)
-   local self = {}
-   setmetatable(self, Storage)
+   local self = Storage.__init()
    if size > 0 then
       self.__data = ffi.cast(realptrct, ffi.C.malloc(realsz*size))
       ffi.gc(self.__data, ffi.C.free)
@@ -167,10 +166,4 @@ end
 
 Storage.__tostring = print.storage
 
-torch.Storage = {}
-setmetatable(torch.Storage, {__index=Storage,
-                             __metatable=Storage,
-                             __newindex=Storage,
-                             __call=function(self, ...)
-                                       return Storage.new(...)
-                                    end})
+torch.Storage = torch.constructor(Storage)

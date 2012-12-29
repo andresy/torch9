@@ -3,7 +3,7 @@ local argcheck = require 'torch.argcheck'
 local print = require 'torch.print'
 local ffi = require 'ffi'
 
-local Tensor = {__typename="torch.Tensor"}
+local Tensor = torch.class('torch.Tensor')
 
 local longvlact = ffi.typeof('long[?]')
 
@@ -16,11 +16,10 @@ local function carray2table(arr, size)
 end
 
 local function rawInit()
-   local self = {}
+   local self = Tensor.__init()
    self.__storageOffset = 0
    self.__nDimension = 0
    self.__flag = 0
-   setmetatable(self, Tensor)
    return self
 end
 
@@ -496,10 +495,4 @@ end
 
 Tensor.__tostring = print.tensor
 
-torch.Tensor = {}
-setmetatable(torch.Tensor, {__index=Tensor,
-                            __metatable=Tensor,
-                            __newindex=Tensor,
-                            __call=function(self, ...)
-                                      return Tensor.new(...)
-                                   end})
+torch.Tensor = torch.constructor(Tensor)

@@ -17,13 +17,9 @@ ffi.cdef[[
       size_t strlen(const char *s);
 ]]
 
-local DiskFile = {
-   __typename="torch.DiskFile",
-   SEEK_SET=0,
-   SEEK_END=2
-}
-DiskFile.__index = DiskFile
-setmetatable(DiskFile, getmetatable(torch.File))
+local DiskFile = torch.class('torch.DiskFile', 'torch.File')
+DiskFile.SEEK_SET = 0
+DiskFile.SEEK_END = 2
 
 local function reversememory(dst, src, blocksize, n)
    local halfblocksize = blocksize/2
@@ -341,7 +337,7 @@ DiskFile.new =
          end
       end
 
-      self = {}
+      self = DiskFile.__init()
       self.__handle = handle
       self.__name = name
       self.__isQuiet = quiet
@@ -351,7 +347,6 @@ DiskFile.new =
       self.__isNativeEncoding = true
       self.__isAutoSpacing = true
       self.__hasError = false
-      setmetatable(self, DiskFile)
 
       ffi.gc(self.__handle, ffi.C.fclose)
 
@@ -359,10 +354,4 @@ DiskFile.new =
    end
 )
 
-torch.DiskFile = {}
-setmetatable(torch.DiskFile, {__index=DiskFile,
-                              __metatable=DiskFile,
-                              __newindex=DiskFile,
-                              __call=function(self, ...)
-                                        return DiskFile.new(...)
-                                     end})
+torch.DiskFile = torch.constructor(DiskFile)

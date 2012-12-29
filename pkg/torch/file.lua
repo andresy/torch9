@@ -1,7 +1,7 @@
 local argcheck = require 'torch.argcheck'
-local File = {__typename="torch.File"}
-File.__index = File
 local ffi = require 'ffi'
+
+local File = torch.class('torch.File')
 
 -- should initialize basic variables (__isBinary, __isAutoSpacing... here in a basic constructor)
 
@@ -275,10 +275,9 @@ File.write =
    end
 )
 
-torch.File = {}
-setmetatable(torch.File, {__index=File,
-                          __metatable=File,
-                          __newindex=File,
-                          __call=function(self, ...)
-                                    error('virtual class')
-                                 end})
+File.new =
+   function()
+      error('virtual class')
+   end
+
+torch.File = torch.constructor(File)

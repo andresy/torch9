@@ -7,11 +7,7 @@ ffi.cdef[[
  int sscanf(const char *restrict s, const char *restrict format, ...);
 ]]
 
-local MemoryFile = {
-   __typename="torch.MemoryFile",
-}
-MemoryFile.__index = MemoryFile
-setmetatable(MemoryFile, getmetatable(torch.File))
+local MemoryFile = torch.class('torch.MemoryFile', 'torch.File')
 
 local function grow(self, size)
    if self.__position + size + 1 >= self.__buffersize then
@@ -237,7 +233,7 @@ MemoryFile.new =
    function(mode, quiet)
       assert(mode == 'r' or mode == 'w' or mode == 'rw', 'invalid mode (r, w or rw expected)')
 
-      self = {}
+      self = MemoryFile.__init()
       self.__growsize = 1024
       self.__buffersize = 0
       self.__position = 0
@@ -250,16 +246,9 @@ MemoryFile.new =
       self.__isBinary = false
       self.__isAutoSpacing = true
       self.__hasError = false
-      setmetatable(self, MemoryFile)
 
       return self
    end
 )
 
-torch.MemoryFile = {}
-setmetatable(torch.MemoryFile, {__index=MemoryFile,
-                              __metatable=MemoryFile,
-                              __newindex=MemoryFile,
-                              __call=function(self, ...)
-                                        return MemoryFile.new(...)
-                                     end})
+torch.MemoryFile = torch.constructor(MemoryFile)
