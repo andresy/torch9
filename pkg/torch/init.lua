@@ -8,20 +8,8 @@ void *realloc(void *ptr, size_t size);
 typedef unsigned char byte;
 ]]
 
-
--- torch is global for now [due to getmetatable()]
 torch = {}
 package.loaded.torch = torch
-
--- adapt usual global functions to torch7 objects
-local luatostring = tostring
-function tostring(arg)
-   local flag, func = pcall(function(arg) return arg.__tostring end, arg)
-   if flag and func then
-      return func(arg)
-   end
-   return luatostring(arg)
-end
 
 function torch.type(obj)
    local tname = type(obj)
@@ -50,14 +38,6 @@ function torch.istype(obj, typename)
       end
    else
       return typename == tname
-   end
-end
-
-function torch.getmetatable(str)
-   local module, name = str:match('([^%.]+)%.(.+)')   
-   local rtbl = _G[module][name]
-   if rtbl then 
-      return getmetatable(rtbl)
    end
 end
 
