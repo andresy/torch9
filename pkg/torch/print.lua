@@ -1,8 +1,11 @@
+local torch = require 'torch'
+local print = {}
+
 local function storageformat(self)
    local intMode = true
    local expMin =  math.huge
    local expMax = -math.huge
-   local type = torch.typename(self)
+   local type = torch.type(self)
    for i=1,self:size() do
       local z = tonumber(self[i])
       if z ~= math.ceil(z) then
@@ -58,7 +61,7 @@ local function storageformat(self)
    return format, scale, sz
 end
 
-function torch.Storage:__tostring()
+function print.storage(self)
    local strt = {'\n'}
    local format, scale = storageformat(self)
    if format:sub(2,4) == 'nan' then format = '%f' end
@@ -165,11 +168,11 @@ local function printtensor(self)
    return str
 end
 
-function torch.Tensor.__tostring(self)
+function print.tensor(self)
    local str = '\n'
    local strt = {''}
    if self:nDimension() == 0 then
-      table.insert(strt, string.format('[%s with no dimension]\n', torch.typename(self)))
+      table.insert(strt, string.format('[%s with no dimension]\n', torch.type(self)))
    else
       if self:nDimension() == 1 then
          local format,scale,sz = storageformat(self:storage())
@@ -204,3 +207,5 @@ function torch.Tensor.__tostring(self)
    local str = table.concat(strt)
    return str
 end
+
+return print

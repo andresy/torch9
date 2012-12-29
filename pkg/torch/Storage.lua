@@ -1,5 +1,7 @@
-local Storage = {__typename="torch.Storage"}
 local argcheck = require 'torch.argcheck'
+local print = require 'torch.print'
+
+local Storage = {__typename="torch.Storage"}
 
 local th = ffi.load(paths.concat(paths.install_lua_path,
                                  'torch',
@@ -160,6 +162,8 @@ function Storage:__newindex(k, v)
       rawset(self, k, v)
    end
 end
+
+Storage.__tostring = print.storage
 
 torch.Storage = {}
 setmetatable(torch.Storage, {__index=Storage,

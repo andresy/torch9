@@ -145,7 +145,6 @@ include('dimapply.lua', env)
 include('iterator.lua', env)
 require('torch.maths')
 require('torch.random')
-includetemplate('print.lua', env)
 
 require 'torch.file'
 require 'torch.diskfile'

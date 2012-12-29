@@ -1,4 +1,5 @@
 local argcheck = require 'torch.argcheck'
+local print = require 'torch.print'
 local Tensor = {__typename="torch.Tensor"}
 
 local longvlact = ffi.typeof('long[?]')
@@ -489,6 +490,8 @@ function Tensor:__index(k)
       return Tensor[k]
    end
 end
+
+Tensor.__tostring = print.tensor
 
 torch.Tensor = {}
 setmetatable(torch.Tensor, {__index=Tensor,
