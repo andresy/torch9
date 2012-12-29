@@ -11,38 +11,15 @@ typedef unsigned char byte;
 torch = {}
 package.loaded.torch = torch
 
-require 'torch.type'
-
-function torch.class(tname, parenttname)
-
-   local function constructor(...)
-      local self = {}
-      torch.setmetatable(self, tname)
-      if self.__init then
-         self:__init(...)
-      end
-      return self
-   end
-   
-   local function factory()
-      local self = {}
-      torch.setmetatable(self, tname)
-      return self
-   end
-
-   local mt = torch.newmetatable(tname, parenttname, constructor, nil, factory)
-   local mpt
-   if parenttname then
-      mpt = torch.getmetatable(parenttname)
-   end
-   return mt, mpt
-end
-
 local argcheck = require 'torch.argcheck'
 require 'torch.argtypes'
 local argcheckenv = getfenv(argcheck)
+
+require 'torch.type'
 argcheckenv.type = torch.type
 argcheckenv.istype = torch.istype
+
+require 'torch.class'
 
 require 'torch.timer'
 
