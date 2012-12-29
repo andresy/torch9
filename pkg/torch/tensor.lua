@@ -1,5 +1,8 @@
+local torch = require 'torch'
 local argcheck = require 'torch.argcheck'
 local print = require 'torch.print'
+local ffi = require 'ffi'
+
 local Tensor = {__typename="torch.Tensor"}
 
 local longvlact = ffi.typeof('long[?]')

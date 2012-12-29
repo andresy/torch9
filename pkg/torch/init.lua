@@ -61,23 +61,6 @@ function torch.getmetatable(str)
    end
 end
 
-function include(file, env)
-   if env then
-      local filename = paths.thisfile(file, 3)
-      local f = io.open(filename)
-      local txt = f:read('*all')
-      f:close()
-      local code, err = loadstring(txt, filename)
-      if not code then
-         error(err)
-      end
-      setfenv(code, env)
-      code()      
-   else
-      paths.dofile(file, 3)
-   end
-end
-
 function torch.class(tname, parenttname)
 
    local function constructor(...)
@@ -103,34 +86,6 @@ function torch.class(tname, parenttname)
    return mt, mpt
 end
 
-local function includetemplate(file, env)
-   env = env or _G
-   local filename = paths.thisfile(file, 3)
-   local f = io.open(filename)
-   local txt = f:read('*all')
-   f:close()
-   local types = {'byte', 'char', 'short', 'int', 'long', 'float', 'double'}
-   local Types = {'Byte', 'Char', 'Short', 'Int', 'Long', 'Float', 'Double'}
-   local taccs = {'long', 'long', 'long', 'long', 'long', 'double', 'double'}
-
-   for i=1,#types do
-      local real, Real, accreal = types[i], Types[i], taccs[i]
-      local txt = txt:gsub('([%p%s])real([%p%s])', '%1' .. real .. '%2')
-      local txt = txt:gsub('([%p%s])accreal([%p%s])', '%1' .. accreal .. '%2')
-      txt = txt:gsub('([%p%s])Storage([%p%s])', '%1' .. Real .. 'Storage' .. '%2')
-      txt = txt:gsub('([%p%s])Tensor([%p%s])', '%1' .. Real .. 'Tensor' .. '%2')
-      local code, err = loadstring(txt, filename)
-      if not code then
-         error(err)
-      end
-      setfenv(code, env)
-      code()
-   end   
-end
-
-local env = {ffi=ffi, torch=torch}
-setmetatable(env, {__index=_G})
-
 local argcheck = require 'torch.argcheck'
 require 'torch.argtypes'
 local argcheckenv = getfenv(argcheck)
@@ -138,8 +93,9 @@ argcheckenv.type = torch.type
 argcheckenv.istype = torch.istype
 
 require 'torch.Timer'
-includetemplate('Storage.lua', env)
-includetemplate('Tensor.lua', env)
+
+require 'torch.storage'
+require 'torch.tensor'
 
 require 'torch.apply'
 require 'torch.dimapply'

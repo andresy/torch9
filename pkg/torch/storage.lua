@@ -1,5 +1,7 @@
+local torch = require 'torch'
 local argcheck = require 'torch.argcheck'
 local print = require 'torch.print'
+local ffi = require 'ffi'
 
 local Storage = {__typename="torch.Storage"}
 
