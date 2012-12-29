@@ -92,7 +92,7 @@ local argcheckenv = getfenv(argcheck)
 argcheckenv.type = torch.type
 argcheckenv.istype = torch.istype
 
-require 'torch.Timer'
+require 'torch.timer'
 
 require 'torch.storage'
 require 'torch.tensor'
