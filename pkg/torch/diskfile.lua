@@ -351,7 +351,7 @@ DiskFile.new =
       self.__isNativeEncoding = true
       self.__isAutoSpacing = true
       self.__hasError = false
-      setmetatable(self, {__index=DiskFile, __metatable=DiskFile})
+      setmetatable(self, DiskFile)
 
       ffi.gc(self.__handle, ffi.C.fclose)
 

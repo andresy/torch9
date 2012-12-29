@@ -250,7 +250,7 @@ MemoryFile.new =
       self.__isBinary = false
       self.__isAutoSpacing = true
       self.__hasError = false
-      setmetatable(self, {__index=MemoryFile, __metatable=MemoryFile})
+      setmetatable(self, MemoryFile)
 
       return self
    end
