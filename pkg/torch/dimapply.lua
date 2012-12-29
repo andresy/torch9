@@ -1,3 +1,5 @@
+local torch = require 'torch'
+
 -- narg: #of input tensors
 -- dim: #of dim of the input tensors
 -- dima: dimension over which we apply

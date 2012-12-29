@@ -1,3 +1,5 @@
+local torch = require 'torch'
+
 local function generate_apply(dim)
    local func = {}
    local funcarg = {}

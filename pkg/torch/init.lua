@@ -140,11 +140,13 @@ argcheckenv.istype = torch.istype
 require 'torch.Timer'
 includetemplate('Storage.lua', env)
 includetemplate('Tensor.lua', env)
-include('apply.lua', env)
-include('dimapply.lua', env)
+
 include('iterator.lua', env)
-require('torch.maths')
-require('torch.random')
+
+require 'torch.apply'
+require 'torch.dimapply'
+require 'torch.maths'
+require 'torch.random'
 
 require 'torch.file'
 require 'torch.diskfile'
