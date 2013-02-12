@@ -13,8 +13,7 @@ local th = ffi.load(paths.concat(paths.install_lua_path,
 local realsz = ffi.sizeof('real')
 local realptrct = ffi.typeof('real*')
 
-local function rawInitWithSize(size)
-   local self = Storage.__init()
+local function rawInitWithSize(self, size)
    if size > 0 then
       self.__data = ffi.cast(realptrct, ffi.C.malloc(realsz*size))
       ffi.gc(self.__data, ffi.C.free)
@@ -22,21 +21,20 @@ local function rawInitWithSize(size)
    else
       self.__size = 0
    end
-   self.__flag = 0
    return self
 end
 
 function Storage.new(...)
    local narg = select('#', ...)
-   local self
+   local self = Storage.__init()
    if narg == 0 then
-      return rawInitWithSize(0)
+      return rawInitWithSize(self, 0)
    elseif narg == 1 and type(select(1, ...)) == 'number' then
-      return rawInitWithSize(select(1, ...))
+      return rawInitWithSize(self, select(1, ...))
    elseif narg == 1 and type(select(1, ...)) == 'table' then
       local tbl = select(1, ...)
       local size = #tbl
-      self = rawInitWithSize(size)
+      self = rawInitWithSize(self, size)
       for i=1,size do
          self.__data[i-1] = tbl[i]
       end
@@ -180,6 +178,21 @@ function Storage:__newindex(k, v)
    else
       rawset(self, k, v)
    end
+end
+
+function Storage:__len()
+   return self.__size
+end
+
+function Storage:write(file)
+   file:writeLong(self.__size)
+   file:writeRaw('real', self.__data, self.__size)
+end
+
+function Storage:read(file)
+   local size = file:readLong()
+   rawInitWithSize(self, size)
+   file:readRaw('real', self.__data, self.__size)
 end
 
 Storage.__tostring = print.storage

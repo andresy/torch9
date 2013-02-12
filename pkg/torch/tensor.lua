@@ -15,8 +15,7 @@ local function carray2table(arr, size)
    return tbl
 end
 
-local function rawInit()
-   local self = Tensor.__init()
+local function rawInit(self)
    self.__storageOffset = 0
    self.__nDimension = 0
    self.__flag = 0
@@ -177,7 +176,9 @@ Tensor.clearFlag = argcheck{
 
 -- creation
 local function new(storage, storageOffset, size, stride)
-   local self = rawInit()
+   local self = Tensor.__init()
+   rawInit(self)
+
    local dim = size and #size or 0
 
    storageOffset = storageOffset or 0
@@ -494,5 +495,23 @@ function Tensor:__index(k)
 end
 
 Tensor.__tostring = print.tensor
+
+function Tensor:write(file)
+   file:writeLong(self.__nDimension)
+   file:writeRaw('long', self.__size, self.__nDimension)
+   file:writeRaw('long', self.__stride, self.__nDimension)
+   file:writeLong(self.__storageOffset)
+   file:writeObject(self.__storage)
+end
+
+function Tensor:read(file)
+   self.__nDimension = file:readLong()
+   self.__size = longvlact(self.__nDimension)
+   self.__stride = longvlact(self.__nDimension)
+   file:readRaw('long', self.__size, self.__nDimension)
+   file:readRaw('long', self.__stride, self.__nDimension)
+   self.__storageOffset = file:readLong()
+   self.__storage = file:readObject()
+end
 
 torch.Tensor = torch.constructor(Tensor)
