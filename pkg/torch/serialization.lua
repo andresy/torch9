@@ -22,11 +22,11 @@ local TYPE_BOOLEAN  = 5
 local TYPE_FUNCTION = 6
 
 function File:isWritableObject(object)
-   local typename = type(object)
+   local typename = torch.type(object)
    local typeidx
    if type(object) ~= 'boolean' and not object then
       typeidx = TYPE_NIL
-   elseif typename == 'table' and torch.metatable(typename) then
+   elseif torch.metatable(typename) then
       typeidx = TYPE_TORCH
    elseif typename == 'table' then
       typeidx = TYPE_TABLE
@@ -66,7 +66,7 @@ function File:writeObject(object, force)
       self:writeBool(object)
    elseif typeidx == TYPE_STRING then
       local stringStorage = torch.CharStorage():string(object)
-      self:writeInt(#stringStorage)
+      self:writeInt(stringStorage:size())
       self:writeChar(stringStorage)
    elseif typeidx == TYPE_FUNCTION then
       local upvalues = {}
@@ -77,7 +77,7 @@ function File:writeObject(object, force)
       end
       local dumped = string.dump(object)
       local stringStorage = torch.CharStorage():string(dumped)
-      self:writeInt(#stringStorage)
+      self:writeInt(stringStorage:size())
       self:writeChar(stringStorage)
       self:writeObject(upvalues)
    elseif typeidx == TYPE_TORCH or typeidx == TYPE_TABLE then
@@ -99,12 +99,12 @@ function File:writeObject(object, force)
          objects.nWriteObject = index
 
          if typeidx == TYPE_TORCH then
-            local version   = torch.CharStorage():string('V ' .. object.__version)
-            local className = torch.CharStorage():string(torch.type(object))
-            self:writeInt(#version)
-            self:writeChar(version)
-            self:writeInt(#className)
-            self:writeChar(className)
+            local version = 'V ' .. object.__version
+            self:writeInt(#version) -- backward compat
+            self:write(version .. '\n')
+            local className = torch.type(object)
+            self:writeInt(#className)  -- backward compat
+            self:write(className .. '\n')
             if object.write then
                object:write(self)
             else
@@ -173,16 +173,18 @@ function File:readObject()
       -- otherwise read it
       if typeidx == TYPE_TORCH then
          local version, className, versionNumber
-         version = self:readChar(self:readInt()):string()
+         self:readInt() -- backward compat
+         version = self:read('*l')
          versionNumber = tonumber(string.match(version, '^V (.*)$'))
          if not versionNumber then
             className = version
             versionNumber = 0 -- file created before existence of versioning system
          else
-            className = self:readChar(self:readInt()):string()
+            self:readInt() -- backward compat
+            className = self:read('*l')
          end
          if not torch.metatable(className) then
-            error(string.format('unknown Torch class <%s>', tostring(className)))
+            error(string.format('unknown Torch class <%s>', className))
          end
          local object = torch.metatable(className).__init()
          objects[index] = object

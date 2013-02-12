@@ -1,6 +1,62 @@
 local argcheck = require 'torch.argcheck'
 local ffi = require 'ffi'
 
+local iotypes = {
+   byte   = {ctype='unsigned char', format='%hhu'},
+   char   = {ctype='char', format='%hhd'},
+   short  = {ctype='short', format='%hd'},
+   int    = {ctype='int', format='%d'},
+   long   = {ctype='long', format='%ld'},
+   float  = {ctype='float', format='%g'},
+   double = {ctype='double', format='%lg'},
+}
+
+for ioluatype, iotype in pairs(iotypes) do
+   iotype.type = ioluatype
+   iotype.Type = string.upper(string.sub(ioluatype, 1, 1)) .. string.sub(ioluatype, 2, -1)
+   iotype.Storage = torch[iotype.Type .. 'Storage']
+   iotype.sizeof = ffi.sizeof(iotype.ctype)
+   iotype.ffictype = ffi.typeof(iotype.ctype)
+   iotype.ffipval = ffi.typeof(iotype.ctype .. '[1]')
+
+   iotype.write =
+      function(self, cdata, size)
+         local n
+         if self.__isBinary then
+            n = self:__write(cdata, iotype.sizeof, size)
+         else
+            n = self:__printf(iotype.format, cdata, size)
+            if self.__isAutoSpacing and n > 0 then
+               local ret = '\n'
+               self:__write(ffi.cast('char*', ret), 1, 1)
+            end
+         end
+         if n ~= size then
+            if not self.__isQuiet then
+               error(string.format('wrote %d values instead of %d', n, size))
+            end
+         end
+         return n
+      end
+
+   iotype.read =
+      function(self, cdata, size)
+         local n
+         if self.__isBinary then
+            n = self:__read(cdata, iotype.sizeof, size)
+         else
+            n = self:__scanf(iotype.format, cdata, size)
+         end
+         if n ~= size then
+            if not self.__isQuiet then
+               error(string.format('read %d values instead of %d', n, size))
+            end
+         end
+         return n
+      end
+end
+
+
 local File = torch.class('torch.File')
 
 -- should initialize basic variables (__isBinary, __isAutoSpacing... here in a basic constructor)
@@ -53,81 +109,36 @@ File.isBinary =
    end
 )
 
-local types = {
-   {Type="Byte", ctype=ffi.typeof("unsigned char[1]"), ptype="%hhu", Storage=torch.ByteStorage, sizeof=ffi.sizeof('unsigned char')},
-   {Type="Char", ctype=ffi.typeof("char[1]"), ptype="%hhd", Storage=torch.CharStorage, sizeof=ffi.sizeof('char')},
-   {Type="Short", ctype=ffi.typeof("short[1]"), ptype="%hd", Storage=torch.ShortStorage, sizeof=ffi.sizeof('short')},
-   {Type="Int", ctype=ffi.typeof("int[1]"), ptype="%d", Storage=torch.IntStorage, sizeof=ffi.sizeof('int')},
-   {Type="Long", ctype=ffi.typeof("long[1]"), ptype="%ld", Storage=torch.LongStorage, sizeof=ffi.sizeof('long')},
-   {Type="Float", ctype=ffi.typeof("float[1]"), ptype="%g", Storage=torch.FloatStorage, sizeof=ffi.sizeof('float')},
-   {Type="Double", ctype=ffi.typeof("double[1]"), ptype="%lg", Storage=torch.DoubleStorage, sizeof=ffi.sizeof('double')},
-}
-
-for _, ttype in ipairs(types) do
-
-   local function write(self, cdata, size)
-      local n
-      if self.__isBinary then
-         n = self:__write(cdata, ttype.sizeof, size)
-      else
-         n = self:__printf(ttype.ptype, cdata, size)
-         if self.__isAutoSpacing and n > 0 then
-            local ret = '\n'
-            self:__write(ffi.cast('char*', ret), 1, 1)
-         end
-      end
-      if n ~= size then
-         if not self.__isQuiet then
-            error(string.format('wrote %d values instead of %d', n, size))
-         end
-      end
-      return n
-   end
-
-   File['write' .. ttype.Type] =
+for _, iotype in pairs(iotypes) do
+   File['write' .. iotype.Type] =
       argcheck(
       {{name="self", type="torch.File"},
-       {name="storage", type="torch." .. ttype.Type .. "Storage"}},
+       {name="storage", type="torch." .. iotype.Type .. "Storage"}},
       function(self, storage)
-         return write(self, storage.__data, storage.__size)
+         return iotype.write(self, storage.__data, storage.__size)
       end,
 
       {{name="self", type="torch.File"},
        {name="value", type="number"}},
       function(self, value)
-         local p = ttype.ctype(value)
-         return write(self, p, 1)
+         local p = iotype.ffipval(value)
+         return iotype.write(self, p, 1)
       end
    )
 
-   local function read(self, cdata, size)
-      local n
-      if self.__isBinary then
-         n = self:__read(cdata, ttype.sizeof, size)
-      else
-         n = self:__scanf(ttype.ptype, cdata, size)
-      end
-      if n ~= size then
-         if not self.__isQuiet then
-            error(string.format('read %d values instead of %d', n, size))
-         end
-      end
-      return n
-   end
-
-   File['read' .. ttype.Type] =
+   File['read' .. iotype.Type] =
       argcheck(
       {{name="self", type="torch.File"},
-       {name="storage", type="torch." .. ttype.Type .. "Storage"}},
+       {name="storage", type="torch." .. iotype.Type .. "Storage"}},
       function(self, storage)
-         return read(self, storage.__data, storage.__size)
+         return iotype.read(self, storage.__data, storage.__size)
       end,
 
       {{name="self", type="torch.File"},
        {name="size", type="number"}},
       function(self, size)
-         local storage = ttype.Storage(size)
-         local n = read(self, storage.__data, storage.__size)
+         local storage = iotype.Storage(size)
+         local n = iotype.read(self, storage.__data, storage.__size)
          if n ~= size then
             storage:resize(n)
          end
@@ -136,10 +147,10 @@ for _, ttype in ipairs(types) do
 
       {{name="self", type="torch.File"}},
       function(self)
-         local p = ttype.ctype()
-         local n = read(self, p, 1)
+         local p = iotype.ffipval()
+         local n = iotype.read(self, p, 1)
          if n ~= 0 then
-            return p[0]
+            return tonumber(p[0])
          end
       end
    )
@@ -237,7 +248,7 @@ end
 
 File.read =
    argcheck(
-   {{name="self", type="torch.File"},
+   {{{name="self", type="torch.File"},
     {name="format", type="string"}},
    function(self, format)
       if format:match('^%*n') then
@@ -256,11 +267,11 @@ File.read =
          error('invalid format')
       end
    end
-)
+})
 
 File.write =
    argcheck(
-   {{name="self", type="torch.File"},
+   {{{name="self", type="torch.File"},
     {name="value", type="string"}},
    function(self, value)
       self:__write(ffi.cast('char*', value), 1, #value)
@@ -272,6 +283,30 @@ File.write =
       local p = ffi.new('double[1]')
       p[0] = value
       self:__printf("%lf", p, 1)
+   end
+})
+
+File.readRaw =
+   argcheck(
+   {{name="self", type="torch.File"},
+    {name="typex", type="string"},
+    {name="cdata", type="cdata"},
+    {name="size", type="number"}},
+   function(self, type, cdata, size)
+      assert(iotypes[type], 'unknown type')
+      iotypes[type].read(self, cdata, size)
+   end
+)
+
+File.writeRaw =
+   argcheck(
+   {{name="self", type="torch.File"},
+    {name="typex", type="string"},
+    {name="cdata", type="cdata"},
+    {name="size", type="number"}},
+   function(self, type, cdata, size)
+      assert(iotypes[type], 'unknown type')
+      iotypes[type].write(self, cdata, size)
    end
 )
 
