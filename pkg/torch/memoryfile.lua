@@ -193,6 +193,13 @@ MemoryFile.__scanf =
             n = n + 1
          end
       end
+
+      if self.__isAutoSpacing and size > 0 then
+         if self.__position < self.__size and self.__buffer[self.__position] == string.byte('\n') then
+            self.__position = self.__position + 1
+         end
+      end
+
       return n
    end
 )

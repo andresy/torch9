@@ -15,6 +15,8 @@ ffi.cdef[[
       int fscanf(FILE *restrict stream, const char *restrict format, ...);
       char *fgets(char *restrict s, int n, FILE *restrict stream);
       size_t strlen(const char *s);
+      int fgetc(FILE *stream);
+      int ungetc(int c, FILE *stream);
 ]]
 
 local DiskFile = torch.class('torch.DiskFile', 'torch.File')
@@ -266,6 +268,12 @@ DiskFile.__scanf =
             break
          else
             n = n + 1
+         end
+      end
+      if self.__isAutoSpacing and size > 0 then
+         local c = ffi.C.fgetc(self.__handle)
+         if string.char(c) ~= '\n' and c ~= -1 then
+            ffi.C.ungetc(c, self.__handle)
          end
       end
       return n
