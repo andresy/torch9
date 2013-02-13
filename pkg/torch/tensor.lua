@@ -1,6 +1,6 @@
 local torch = require 'torch'
 local argcheck = require 'torch.argcheck'
-local print = require 'torch.print'
+local display = require 'torch.display'
 local ffi = require 'ffi'
 
 local Tensor = torch.class('torch.Tensor')
@@ -494,7 +494,7 @@ function Tensor:__index(k)
    end
 end
 
-Tensor.__tostring = print.tensor
+Tensor.__tostring = display.tensor
 
 function Tensor:write(file)
    file:writeLong(self.__nDimension)

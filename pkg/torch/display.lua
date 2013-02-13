@@ -1,5 +1,5 @@
 local torch = require 'torch'
-local print = {}
+local display = {}
 
 local function storageformat(self)
    local intMode = true
@@ -61,7 +61,7 @@ local function storageformat(self)
    return format, scale, sz
 end
 
-function print.storage(self)
+function display.storage(self)
    local strt = {'\n'}
    local format, scale = storageformat(self)
    if format:sub(2,4) == 'nan' then format = '%f' end
@@ -81,7 +81,7 @@ function print.storage(self)
    return str
 end
 
-local function printmatrix(self, indent)
+local function displaymatrix(self, indent)
    local format, scale, sz = storageformat(self:storage())
    if format:sub(2,4) == 'nan' then format = '%f' end
    scale = scale or 1
@@ -129,7 +129,7 @@ local function printmatrix(self, indent)
    return str
 end
 
-local function printtensor(self)
+local function displaytensor(self)
    local counter = torch.LongStorage(self:nDimension()-2)
    local strt = {''}
    local finished
@@ -151,7 +151,6 @@ local function printtensor(self)
       if finished then
          break
       end
---      print(counter)
       if #strt > 1 then
          table.insert(strt, '\n')
       end
@@ -162,13 +161,13 @@ local function printtensor(self)
          table.insert(strt, counter[i] .. ',')
       end
       table.insert(strt, '.,.) = \n')
-      table.insert(strt, printmatrix(tensor, ' '))
+      table.insert(strt, displaymatrix(tensor, ' '))
    end
    local str = table.concat(strt)
    return str
 end
 
-function print.tensor(self)
+function display.tensor(self)
    local str = '\n'
    local strt = {''}
    if self:nDimension() == 0 then
@@ -190,10 +189,10 @@ function print.tensor(self)
          end
          table.insert(strt, string.format('[%s of dimension %d]\n', torch.type(self), self:size(1)))
       elseif self:nDimension() == 2 then
-         table.insert(strt, printmatrix(self))
+         table.insert(strt, displaymatrix(self))
          table.insert(strt, string.format('[%s of dimension %dx%d]\n', torch.type(self), self:size(1), self:size(2)))
       else
-         table.insert(strt, printtensor(self))
+         table.insert(strt, displaytensor(self))
          table.insert(strt, string.format('[%s of dimension ', torch.type(self)))
          for i=1,self:nDimension() do
             table.insert(strt, self:size(i))
@@ -208,4 +207,4 @@ function print.tensor(self)
    return str
 end
 
-return print
+return display

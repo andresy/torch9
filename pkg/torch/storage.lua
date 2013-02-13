@@ -1,6 +1,6 @@
 local torch = require 'torch'
 local argcheck = require 'torch.argcheck'
-local print = require 'torch.print'
+local display = require 'torch.display'
 local ffi = require 'ffi'
 
 local Storage = torch.class('torch.Storage')
@@ -195,6 +195,6 @@ function Storage:read(file)
    file:readRaw('real', self.__data, self.__size)
 end
 
-Storage.__tostring = print.storage
+Storage.__tostring = display.storage
 
 torch.Storage = torch.constructor(Storage)
