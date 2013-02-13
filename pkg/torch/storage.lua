@@ -101,6 +101,18 @@ Storage.rawCopy =
    end
 )
 
+Storage.totable =
+   argcheck(
+   {{name="self", type="torch.Storage"}},
+   function(self)
+      local tbl = {}
+      for i=1,self.__size do
+         tbl[i] = self.__data[i-1]
+      end
+      return tbl
+   end
+)
+
 if "Storage" == "CharStorage" or "Storage" == "ByteStorage" then
    Storage.string =
       argcheck(
