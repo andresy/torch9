@@ -5,6 +5,8 @@ local ffi = require 'ffi'
 
 local Tensor = torch.class('torch.Tensor')
 
+Tensor.__version = 2
+
 local longvlact = ffi.typeof('long[?]')
 
 local function carray2table(arr, size)
@@ -504,13 +506,16 @@ function Tensor:write(file)
    file:writeObject(self.__storage)
 end
 
-function Tensor:read(file)
+function Tensor:read(file, version)
    self.__nDimension = file:readLong()
    self.__size = longvlact(self.__nDimension)
    self.__stride = longvlact(self.__nDimension)
    file:readRaw('long', self.__size, self.__nDimension)
    file:readRaw('long', self.__stride, self.__nDimension)
    self.__storageOffset = file:readLong()
+   if version == 1 then
+      self.__storageOffset = self.__storageOffset - 1
+   end
    self.__storage = file:readObject()
 end
 
