@@ -1,5 +1,4 @@
 local ffi = require 'ffi'
-require "paths"
 
 ffi.cdef[[
 void free(void *ptr);

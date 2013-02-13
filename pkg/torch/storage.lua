@@ -5,10 +5,7 @@ local ffi = require 'ffi'
 
 local Storage = torch.class('torch.Storage')
 
-local th = ffi.load(paths.concat(paths.install_lua_path,
-                                 'torch',
-                                 ((jit.os == 'Windows') and '' or 'lib') .. 'maths' ..
-                                 ((jit.os == 'Windows') and '.dll' or ((jit.os == 'OSX') and '.dylib' or '.so'))))
+local th = require 'torch.clib'
 
 local realsz = ffi.sizeof('real')
 local realptrct = ffi.typeof('real*')

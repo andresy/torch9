@@ -10,10 +10,7 @@ ffi.cdef[[
       unsigned long random();
 ]]
 
-local th = ffi.load(paths.concat(paths.install_lua_path,
-                                 'torch',
-                                 ((jit.os == 'Windows') and '' or 'lib') .. 'maths' .. 
-                                 ((jit.os == 'Windows') and '.dll' or ((jit.os == 'OSX') and '.dylib' or '.so'))))
+local th = require 'torch.clib'
 
 torch.random = argcheck(
    {},

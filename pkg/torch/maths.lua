@@ -41,10 +41,8 @@ ffi.cdef[[
       void copy_real_double(real *y, long sty, double *x, long stx, long sz);
 ]]
 
-local th = ffi.load(paths.concat(paths.install_lua_path,
-                                 'torch',
-                                 ((jit.os == 'Windows') and '' or 'lib') .. 'maths' .. 
-                                 ((jit.os == 'Windows') and '.dll' or ((jit.os == 'OSX') and '.dylib' or '.so'))))
+local th = require 'torch.clib'
+
 print('we loaded real')
 
 local register =
