@@ -487,12 +487,12 @@ Tensor.nElement = argcheck{
 
 function Tensor:__index(k)
    if type(k) == 'number' then
+      assert(self.__nDimension >= 1 and k > 0 and k <= self.__size[0], 'out of bounds')
       if self.__nDimension == 1 then
-         return self.__storage[tonumber(k+self.__storageOffset)]
-      elseif self.__nDimension > 1 then
-         return self:select(1, k)
+         k = k - 1
+         return self.__storage.__data[k*self.__stride[0]+self.__storageOffset]
       else
-         error('empty tensor')
+         return self:select(1, k)
       end
    else
       return Tensor[k]
