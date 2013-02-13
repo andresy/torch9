@@ -177,8 +177,7 @@ Tensor.clearFlag = argcheck{
 }
 
 -- creation
-local function new(storage, storageOffset, size, stride)
-   local self = Tensor.__init()
+local function new(self, storage, storageOffset, size, stride)
    rawInit(self)
 
    local dim = size and #size or 0
@@ -199,24 +198,28 @@ local function new(storage, storageOffset, size, stride)
    return self
 end
 
-Tensor.new = argcheck{
-   {},
+Tensor.__init = argcheck{
+   {{name='self', type='torch.Tensor'}},
    new,
 
-   {{name='storage', type='torch.Storage'},
+   {{name='self', type='torch.Tensor'},
+    {name='storage', type='torch.Storage'},
     {name='storageOffset', type='number', default=0},
     {name='size', type='numbers', vararg=false, opt=true},
     {name='stride', type='numbers', vararg=false, opt=true}},
    new,
 
-   {{name='size', type='numbers'}}, -- lower priority than the data init
-   function(size)
-      return new(nil, nil, size, nil)
+   {{name='self', type='torch.Tensor'},
+    {name='size', type='numbers'}}, -- lower priority than the data init
+   function(self, size)
+      return new(self, nil, nil, size, nil)
    end,
 
-   {{name='tensor', type='torch.Tensor'}},
-   function(tensor)
-      return new(tensor.__storage,
+   {{name='self', type='torch.Tensor'},
+    {name='tensor', type='torch.Tensor'}},
+   function(self, tensor)
+      return new(self,
+                 tensor.__storage,
                  tensor.__storageOffset,
                  carray2table(tensor.__size, tensor.__nDimension),
                  carray2table(tensor.__stride, tensor.__nDimension))

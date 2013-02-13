@@ -310,9 +310,7 @@ File.writeRaw =
    end
 )
 
-File.new =
-   function()
-      error('virtual class')
-   end
-
-torch.File = torch.constructor(File)
+torch.File = torch.constructor(File,
+                               function()
+                                  error('virtual class')
+                               end)

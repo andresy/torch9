@@ -24,9 +24,8 @@ local function rawInitWithSize(self, size)
    return self
 end
 
-function Storage.new(...)
+function Storage:__init(...)
    local narg = select('#', ...)
-   local self = Storage.__init()
    if narg == 0 then
       return rawInitWithSize(self, 0)
    elseif narg == 1 and type(select(1, ...)) == 'number' then

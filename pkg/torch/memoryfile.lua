@@ -233,14 +233,14 @@ MemoryFile.__gets =
    end
 )
 
-MemoryFile.new =
+MemoryFile.__init =
    argcheck(
-   {{name="mode", type="string", default='rw'},
+   {{name="self", type="torch.MemoryFile"},
+    {name="mode", type="string", default='rw'},
     {name="quiet", type="boolean", default=false}},
-   function(mode, quiet)
+   function(self, mode, quiet)
       assert(mode == 'r' or mode == 'w' or mode == 'rw', 'invalid mode (r, w or rw expected)')
 
-      self = MemoryFile.__init()
       self.__growsize = 1024
       self.__buffersize = 0
       self.__position = 0

@@ -186,7 +186,7 @@ function File:readObject()
          if not torch.metatable(className) then
             error(string.format('unknown Torch class <%s>', className))
          end
-         local object = torch.metatable(className).__init()
+         local object = torch.factory(className)
          objects[index] = object
          if object.read then
             object:read(self, versionNumber)

@@ -72,10 +72,8 @@ function Timer.sys()
    return (tonumber(time.ru_stime.tv_sec) + tonumber(time.ru_stime.tv_usec)/1000000.0)
 end
 
-function Timer.new()
-   local self = Timer.__init()
+function Timer:__init()
    self:reset()
-   return self
 end
 
 function Timer:reset()

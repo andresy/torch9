@@ -9,13 +9,21 @@ torch.class =
     {name="parentname", type="string", opt=true}},
    function(name, parentname)   
       assert(not classes[name], 'class <%s> already exists', name)
+
       local class = {__typename = name, __version=1}
       class.__index = class
-      class.__init = function()
-                        local t = {}
-                        setmetatable(t, class)
-                        return t
-                     end
+
+      class.__init =
+         function()
+         end
+
+      class.new =
+         function(...)
+            local self = {}
+            setmetatable(self, class)
+            self:__init(...)
+            return self
+         end
       
       classes[name] = class
       
@@ -29,6 +37,17 @@ torch.class =
    end
 )
 
+torch.factory =
+   argcheck(
+   {{name="name", type="string"}},
+   function(name)
+      assert(classes[name], string.format('unknown class <%s>', name))
+      local t = {}
+      setmetatable(t, classes[name])
+      return t
+   end
+)
+
 torch.metatable =
    argcheck(
    {{name="name", type="string"}},
@@ -37,22 +56,29 @@ torch.metatable =
    end
 )
 
+local function constructor(metatable, constructor)
+   local ct = {}
+   setmetatable(ct, {
+                   __index=metatable,
+                   __newindex=metatable,
+                   __metatable=metatable,
+                   __call=function(self, ...)
+                             return constructor(...)
+                          end
+                })
+   return ct
+end
+
 torch.constructor =
    argcheck(
    {{name="metatable", type="table"},
-    {name="constructor", type="string", default="new"}},
-   function(metatable, constructor)
-      assert(metatable[constructor], string.format('field constructor <%s> is nil', constructor))
-      constructor = metatable[constructor]
-      local ct = {}
-      setmetatable(ct, {
-                      __index=metatable,
-                      __newindex=metatable,
-                      __metatable=metatable,
-                      __call=function(self, ...)
-                                return constructor(...)
-                             end
-                   })
-      return ct
-   end
+    {name="ctname", type="string", default="new"}},
+    function(metatable, ctname)
+       assert(metatable[ctname], string.format('constructor <%s> does not exist in metatable', ctname))
+       return constructor(metatable, metatable[ctname])
+    end,
+
+   {{name="metatable", type="table"},
+    {name="constructor", type="function"}},
+   constructor
 )

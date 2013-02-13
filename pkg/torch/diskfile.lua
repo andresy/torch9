@@ -315,12 +315,14 @@ DiskFile.__gets =
    end
 )
 
-DiskFile.new =
+DiskFile.__init =
    argcheck(
-   {{name="name", type="string"},
+   {
+    {name="self", type="torch.DiskFile"},
+    {name="name", type="string"},
     {name="mode", type="string", default='r'},
     {name="quiet", type="boolean", default=false}},
-   function(name, mode, quiet)
+   function(self, name, mode, quiet)
       assert(mode == 'r' or mode == 'w' or mode == 'rw', 'invalid mode (r, w or rw expected)')
 
       local handle
@@ -345,7 +347,6 @@ DiskFile.new =
          end
       end
 
-      self = DiskFile.__init()
       self.__handle = handle
       self.__name = name
       self.__isQuiet = quiet
@@ -357,8 +358,6 @@ DiskFile.new =
       self.__hasError = false
 
       ffi.gc(self.__handle, ffi.C.fclose)
-
-      return self
    end
 )
 
