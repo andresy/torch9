@@ -14,6 +14,7 @@ local realsz = ffi.sizeof('real')
 local realptrct = ffi.typeof('real*')
 
 local function rawInitWithSize(self, size)
+   size = size or 0
    if size > 0 then
       self.__data = ffi.cast(realptrct, ffi.C.malloc(realsz*size))
       ffi.gc(self.__data, ffi.C.free)
@@ -24,59 +25,81 @@ local function rawInitWithSize(self, size)
    return self
 end
 
-function Storage:__init(...)
-   local narg = select('#', ...)
-   if narg == 0 then
-      return rawInitWithSize(self, 0)
-   elseif narg == 1 and type(select(1, ...)) == 'number' then
-      return rawInitWithSize(self, select(1, ...))
-   elseif narg == 1 and type(select(1, ...)) == 'table' then
-      local tbl = select(1, ...)
+Storage.__init =
+   argcheck(
+   {{name="self", type="torch.Storage"}},
+   rawInitWithSize,
+
+   {{name="self", type="torch.Storage"},
+    {name="size", type="number"}},
+   rawInitWithSize,
+
+   {{name="self", type="torch.Storage"},
+    {name="table", type="table"}},
+   function(self, tbl)
       local size = #tbl
       self = rawInitWithSize(self, size)
       for i=1,size do
          self.__data[i-1] = tbl[i]
       end
-   elseif narg == 1 and type(select(1, ...)) == 'string' then
---      self = TH.THStorage_newWithMapping(select(1, ...), 0)[0]
-   elseif narg == 2 and type(select(1, ...)) == 'string' and type(select(2, ...)) == 'boolean' then
---      self = TH.THStorage_newWithMapping(select(1, ...), select(2, ...))[0]
-   else
-      error('invalid arguments')
+   end,
+
+   {{name="self", type="torch.Storage"},
+    {name="filename", type="string"},
+    {name="shared", type="boolean", default=false}},
+   function(self, filename, shared)
+      error('NYI')
    end
-   return self
-end
+)
 
-
-function Storage:fill(value)
-   for i=0,self.__size-1 do
-      self.__data[i] = value
-   end
-   return self
-end
-
-function Storage:size()
-   return self.__size
-end
-
-function Storage:resize(size)
-   if size > 0 and size > self.__size then
-      if self.__data then
-         ffi.gc(self.__data, nil)
+Storage.fill =
+   argcheck(
+   {{name="self", type="torch.Storage"},
+    {name="value", type="number"}},
+   function(self, value)
+      for i=0,self.__size-1 do
+         self.__data[i] = value
       end
-      self.__data = ffi.cast(realptrct,
-                             ffi.C.realloc(self.__data, realsz*size)
-                          )
-      ffi.gc(self.__data, ffi.C.free)
-      self.__size = size
+      return self
    end
-   return self
-end
+)
 
-function Storage:rawCopy(data)
-   ffi.copy(self.__data, data, realsz*self.__size)
-   return self
-end
+Storage.size =
+   argcheck(
+   {{name="self", type="torch.Storage"}},
+   function(self)
+    return self.__size
+   end
+)
+
+Storage.resize =
+   argcheck(
+   {{name="self", type="torch.Storage"},
+    {name="size", type="number"}},
+   function(self, size)
+      if size > 0 and size > self.__size then
+         if self.__data then
+            ffi.gc(self.__data, nil)
+         end
+         self.__data = ffi.cast(realptrct,
+                                ffi.C.realloc(self.__data, realsz*size)
+                             )
+         ffi.gc(self.__data, ffi.C.free)
+         self.__size = size
+      end
+      return self
+   end
+)
+
+Storage.rawCopy =
+   argcheck(
+   {{name="self", type="torch.Storage"},
+    {name="data", type="cdata"}},
+   function(self, data)
+      ffi.copy(self.__data, data, realsz*self.__size)
+      return self
+   end
+)
 
 if "Storage" == "CharStorage" or "Storage" == "ByteStorage" then
    Storage.string =
