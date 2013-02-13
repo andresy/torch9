@@ -289,7 +289,7 @@ File.write =
 File.readRaw =
    argcheck(
    {{name="self", type="torch.File"},
-    {name="typex", type="string"},
+    {name="typename", type="string"},
     {name="cdata", type="cdata"},
     {name="size", type="number"}},
    function(self, type, cdata, size)
@@ -301,7 +301,7 @@ File.readRaw =
 File.writeRaw =
    argcheck(
    {{name="self", type="torch.File"},
-    {name="typex", type="string"},
+    {name="typename", type="string"},
     {name="cdata", type="cdata"},
     {name="size", type="number"}},
    function(self, type, cdata, size)
