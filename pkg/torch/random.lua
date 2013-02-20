@@ -1,19 +1,19 @@
 local torch = require 'torch'
 local ffi = require 'ffi'
 local argcheck = require 'torch.argcheck'
-local th = require 'torch.clib'
+local C = require 'torch.clib'
 
 torch.random = argcheck(
    {},
    function()
-      return tonumber(th.random())
+      return tonumber(C.th_random())
    end
 )
 
 torch.manualSeed = argcheck(
    {{name="seed", type="number"}},
    function(seed)
-      return th.manualSeed(seed)
+      return C.th_manualseed(seed)
    end
 )
 
@@ -21,9 +21,9 @@ torch.seed = argcheck(
    {{name="seed", type="number", opt=true}},
    function(seed)
       if seed then
-         th.manualSeed(seed)
+         C.th_manualseed(seed)
       else
-         return tonumber(th.seed())
+         return tonumber(C.th_seed())
       end
    end
 )
@@ -32,7 +32,7 @@ torch.uniform = argcheck(
    {{name="a", type="number", default=-1},
     {name="b", type="number", default=1}},
    function(a, b)
-      return tonumber(th.random())/2^32 * (b-a) + a
+      return tonumber(C.th_random())/2^32 * (b-a) + a
    end
 )
 
@@ -42,8 +42,8 @@ torch.normal = argcheck(
    function(mean, std)
       local u, v
       repeat
-         u = tonumber(th.random())/2^32
-         v = 1.7156*(tonumber(th.random())/2^32-0.5)
+         u = tonumber(C.th_random())/2^32
+         v = 1.7156*(tonumber(C.th_random())/2^32-0.5)
          local x = u - 0.449871
          local y = math.abs(v) + 0.386595
          local q = x*x + y*(0.196*y-0.25472*x)

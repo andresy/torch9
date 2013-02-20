@@ -29,9 +29,9 @@ local function generatedimapply_narg_dim_dima(narg, dim, dima)
             table.insert(ptr, string.format('+i%d*t%dst%d', i, n, i))
          end
       end
+      table.insert(funcarg, string.format('t%dsz%d', n, dima))
       table.insert(funcarg, table.concat(ptr, ''))
       table.insert(funcarg, string.format('t%dst%d', n, dima))
-      table.insert(funcarg, string.format('t%dsz%d', n, dima))
    end
    table.insert(func, string.format('func(%s)', table.concat(funcarg, ', ')))
    for i=0,dim-1 do

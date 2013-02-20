@@ -53,7 +53,7 @@ local function generate_apply(dim)
          table.insert(funcarg, '0')
       end
    end
-   table.insert(func, string.format('func(%s, r)', table.concat(funcarg, ', ')))
+   table.insert(func, string.format('func(r, %s)', table.concat(funcarg, ', ')))
 
 
    for n=1,#dim do

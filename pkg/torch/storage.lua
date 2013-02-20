@@ -5,7 +5,7 @@ local ffi = require 'ffi'
 
 local Storage = torch.class('torch.Storage')
 
-local th = require 'torch.clib'
+local C = require 'torch.clib'
 
 local realsz = ffi.sizeof('real')
 local realptrct = ffi.typeof('real*')
@@ -134,56 +134,56 @@ Storage.copy =
     {name="src", type='torch.Storage'}},
    function(self, src)
       assert(self.__size == src.__size, 'size mismatch')
-      th.copy_real_real(self.__data, 1, src.__data, 1, self.__size)
+      C.th_copy_real_real(self.__size, src.__data, 1, self.__data, 1)
    end,
 
    {{name="self", type='torch.Storage'},
     {name="src", type='torch.ByteStorage'}},
    function(self, src)
       assert(self.__size == src.__size, 'size mismatch')
-      th.copy_real_byte(self.__data, 1, src.__data, 1, self.__size)
+      C.th_copy_real_byte(self.__size, src.__data, 1, self.__data, 1)
    end,
 
    {{name="self", type='torch.Storage'},
     {name="src", type='torch.CharStorage'}},
    function(self, src)
       assert(self.__size == src.__size, 'size mismatch')
-      th.copy_real_char(self.__data, 1, src.__data, 1, self.__size)
+      C.th_copy_real_char(self.__size, src.__data, 1, self.__data, 1)
    end,
 
    {{name="self", type='torch.Storage'},
     {name="src", type='torch.ShortStorage'}},
    function(self, src)
       assert(self.__size == src.__size, 'size mismatch')
-      th.copy_real_short(self.__data, 1, src.__data, 1, self.__size)
+      C.th_copy_real_short(self.__size, src.__data, 1, self.__data, 1)
    end,
 
    {{name="self", type='torch.Storage'},
     {name="src", type='torch.IntStorage'}},
    function(self, src)
       assert(self.__size == src.__size, 'size mismatch')
-      th.copy_real_int(self.__data, 1, src.__data, 1, self.__size)
+      C.th_copy_real_int(self.__size, src.__data, 1, self.__data, 1)
    end,
 
    {{name="self", type='torch.Storage'},
     {name="src", type='torch.LongStorage'}},
    function(self, src)
       assert(self.__size == src.__size, 'size mismatch')
-      th.copy_real_long(self.__data, 1, src.__data, 1, self.__size)
+      C.th_copy_real_long(self.__size, src.__data, 1, self.__data, 1)
    end,
 
    {{name="self", type='torch.Storage'},
     {name="src", type='torch.FloatStorage'}},
    function(self, src)
       assert(self.__size == src.__size, 'size mismatch')
-      th.copy_real_float(self.__data, 1, src.__data, 1, self.__size)
+      C.th_copy_real_float(self.__size, src.__data, 1, self.__data, 1)
    end,
 
    {{name="self", type='torch.Storage'},
     {name="src", type='torch.DoubleStorage'}},
    function(self, src)
       assert(self.__size == src.__size, 'size mismatch')
-      th.copy_real_double(self.__data, 1, src.__data, 1, self.__size)
+      C.th_copy_real_double(self.__size, src.__data, 1, self.__data, 1)
    end
 )
 

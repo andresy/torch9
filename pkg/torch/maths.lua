@@ -3,7 +3,7 @@ local namedispatch = require 'torch.namedispatch'
 local dispatch = require 'torch.dispatch'
 local argcheck = require 'torch.argcheck'
 local torch = require 'torch'
-local th = require 'torch.clib'
+local C = require 'torch.clib'
 
 print('we loaded real')
 
@@ -35,8 +35,8 @@ register(
       },
       function(dst, value)
          torch.apply(dst,
-                     function(dst, str, sz)
-                        th.fill_real(dst, str, sz, value)
+                     function(sz, dst, str)
+                        C.th_fill_real(sz, value, dst, str)
                      end)
          return dst
       end
@@ -51,7 +51,7 @@ register(
          self="dst"
       },
       function(dst)
-         torch.apply(dst, th.zero_real)
+         torch.apply(dst, C.th_zero_real)
          return dst
       end
    }
@@ -68,8 +68,8 @@ register(
       function(src1, src2)
          local sum = 0
          torch.apply2(src1, src2,
-                      function(src1, strsrc1, src2, strsrc2, sz)
-                         sum = sum + th.dot_real(src1, strsrc1, src2, strsrc2, sz)
+                      function(sz, src1, strsrc1, src2, strsrc2)
+                         sum = sum + C.th_dot_real(sz, src1, strsrc1, src2, strsrc2)
                       end)
          return sum
       end
@@ -88,8 +88,8 @@ register(
          local minptr = ffi.new('real[1]')
          local idsrcptr = ffi.new('long[1]')
          torch.apply(src,
-                     function(src, str, sz)
-                        th.min_real(minptr, idsrcptr, src, str, sz)
+                     function(sz, src, str)
+                        C.th_min_real(sz, src, str, minptr, idsrcptr)
                         min = math.min(min, minptr[0])
                      end)
          return min
@@ -111,11 +111,11 @@ register(
          size[dim] = 1
          res:resize(size)
          idx:resize(size)
-         torch.dimapply3(res, idx, src, dim,
-                         function(res, resst, ressz,
-                                  idx, idxst, idxsz,
-                                  src, srcst, srcsz)
-                            th.min_real(res, idx, src, srcst, srcsz)
+         torch.dimapply3(idx, src, res, dim,
+                         function(idxsz, idx, idxst,
+                                  srcsz, src, srcst,
+                                  ressz, res, resst)
+                            C.th_min_real(srcsz, src, srcst, res, idx)
                          end)
          return res, idx
       end
@@ -134,8 +134,8 @@ register(
          local maxptr = ffi.new('real[1]')
          local idsrcptr = ffi.new('long[1]')
          torch.apply(src,
-                     function(src, str, sz)
-                        th.max_real(maxptr, idsrcptr, src, str, sz)
+                     function(sz, src, str)
+                        C.th_max_real(sz, src, str, maxptr, idsrcptr)
                         max = math.max(max, maxptr[0])
                      end)
          return max
@@ -157,11 +157,11 @@ register(
          size[dim] = 1
          res:resize(size)
          idx:resize(size)
-         torch.dimapply3(res, idx, src, dim,
-                         function(res, resst, ressz,
-                                  idx, idxst, idxsz,
-                                  src, srcst, srcsz)
-                            th.max_real(res, idx, src, srcst, srcsz)
+         torch.dimapply3(idx, src, res, dim,
+                         function(idxsz, idx, idxst,
+                                  srcsz, src, srcst,
+                                  ressz, res, resst)
+                            C.th_max_real(srcsz, src, srcst, res, idx)
                          end)
          return res, idx
       end
@@ -177,8 +177,8 @@ register(
       },
       function(src)
          local sum = 0
-         torch.apply(src, function(src, str, sz)
-                             sum = sum + th.sum_real(src, str, sz)
+         torch.apply(src, function(sz, src, str)
+                             sum = sum + C.th_sum_real(sz, src, str)
                           end)
          return sum
       end,
@@ -196,10 +196,10 @@ register(
          local size = src:size()
          size[dim] = 1
          res:resize(size)
-         torch.dimapply2(res, src, dim,
-                         function(res, resst, ressz,
-                                  src, srcst, srcsz)
-                            res[0] = th.sum_real(src, srcst, srcsz)
+         torch.dimapply2(src, res, dim,
+                         function(srcsz, src, srcst,
+                                  ressz, res, resst)
+                            res[0] = C.th_sum_real(srcsz, src, srcst)
                          end)
          return res
       end
@@ -215,11 +215,9 @@ register(
       },
       function(src)
          local prod = (src:nElement() > 0) and 1 or 0
-         local prodptr = ffi.new('real[1]')
          torch.apply(src,
-                     function(src, str, sz)
-                        th.prod_real(prodptr, src, str, sz)
-                        prod = prod * prodptr[0]
+                     function(sz, src, str)
+                        prod = prod * tonumber( C.th_prod_real(sz, src, str) )
                      end)
          return prod
       end,
@@ -237,10 +235,10 @@ register(
          local size = src:size()
          size[dim] = 1
          res:resize(size)
-         torch.dimapply2(res, src, dim,
-                         function(res, resst, ressz,
-                                  src, srcst, srcsz)
-                            th.prod_real(res, src, srcst, srcsz)
+         torch.dimapply2(src, res, dim,
+                         function(srcsz, src, srcst,
+                                  ressz, res, resst)
+                            res[0] = C.th_prod_real(srcsz, src, srcst)
                          end)
          return res
       end
@@ -261,7 +259,11 @@ register(
          src = src or dst
 
          res:resizeAs(src)
-         torch.dimapply2(res, src, dim, th.cumsum_real)
+         torch.dimapply2(src, res, dim,
+                         function(szsrc, src, incsrc,
+                                  szres, res, incres)
+                            C.th_cumsum_real(szsrc, src, incsrc, res, incres)
+                         end)
          return res
       end
    }
@@ -281,7 +283,11 @@ register(
          src = src or dst
 
          res:resizeAs(src)
-         torch.dimapply2(res, src, dim, th.cumprod_real)
+         torch.dimapply2(src, res, dim,
+                         function(szsrc, src, incsrc,
+                                  szres, res, incres)
+                            C.th_cumprod_real(szsrc, src, incsrc, res, incres)
+                         end)
          return res
       end
    }
@@ -300,8 +306,8 @@ register(
       function(src, n)
          local norm = 0
          torch.apply(src,
-                     function(src, str, sz)
-                        norm = norm + th.norm_real(src, str, sz, n, 0)
+                     function(sz, src, str)
+                        norm = norm + C.th_norm_real(sz, n, 0, src, str)
                      end)
          return math.pow(norm, 1/n)
       end,
@@ -320,10 +326,10 @@ register(
          local size = src:size()
          size[dim] = 1
          res:resize(size)
-         torch.dimapply2(res, src, dim,
-                         function(res, resst, ressz,
-                                  src, srcst, srcsz)
-                            th.norm_real(res, src, srcst, srcsz, n, 1)
+         torch.dimapply2(src, res, dim,
+                         function(srcsz, src, srcst,
+                                  ressz, res, resst)
+                            res[0] = C.th_norm_real(srcsz, n, 1, src, srcst)
                          end)
          return res
       end
@@ -339,8 +345,8 @@ register(
       },
       function(src)
          local sum = 0
-         torch.apply(src, function(src, str, sz)
-                             sum = sum + th.sum_real(src, str, sz)
+         torch.apply(src, function(sz, src, str)
+                             sum = sum + C.th_sum_real(sz, src, str)
                           end)
          return sum / src:nElement()
       end,
@@ -357,10 +363,10 @@ register(
          local size = src:size()
          size[dim] = 1
          res:resize(size)
-         torch.dimapply2(res, src, dim,
-                         function(res, resst, ressz,
-                                  src, srcst, srcsz)
-                            res[0] = th.sum_real(src, srcst, srcsz) / srcsz
+         torch.dimapply2(src, res, dim,
+                         function(srcsz, src, srcst,
+                                  ressz, res, resst)
+                            res[0] = C.th_sum_real(srcsz, src, srcst) / srcsz
                          end)
          return dst
       end
@@ -380,9 +386,9 @@ register(
          local sum2 = 0
          local n = src:nElement()
          torch.apply(src,
-                     function(src, str, sz)
-                        sum = sum + th.sum_real(src, str, sz)
-                        sum2 = sum2 + th.sum2_real(src, str, sz)
+                     function(sz, src, str)
+                        sum = sum + C.th_sum_real(sz, src, str)
+                        sum2 = sum2 + C.th_sum2_real(sz, src, str)
                      end)
          if flag then
             return math.sqrt((sum2 - sum*sum/n)/n)
@@ -408,17 +414,17 @@ register(
          local sumptr = ffi.new('real[1]')
          local sum2ptr = ffi.new('real[1]')
          if flag then
-            torch.dimapply2(res, src, dim,
-                            function(res, resst, ressz,
-                                     src, srcst, srcsz)
-                               th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
+            torch.dimapply2(src, res, dim,
+                            function(srcsz, src, srcst,
+                                     ressz, res, resst)
+                               C.th_sum_sum2_real(srcsz, src, srcst, sumptr, sum2ptr)
                                res[0] = math.sqrt((sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/srcsz)
                             end)
          else
-            torch.dimapply2(res, src, dim,
-                            function(res, resst, ressz,
-                                     src, srcst, srcsz)
-                               th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
+            torch.dimapply2(src, res, dim,
+                            function(srcsz, src, srcst,
+                                     ressz, res, resst)
+                               C.th_sum_sum2_real(srcsz, src, srcst, sumptr, sum2ptr)
                                res[0] = math.sqrt((sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/(srcsz-1))
                             end)
          end
@@ -439,9 +445,9 @@ register(
          local sum = 0
          local sum2 = 0
          local n = src:nElement()
-         torch.apply(src, function(src, str, sz)
-                             sum = sum + th.sum_real(src, str, sz)
-                             sum2 = sum2 + th.sum2_real(src, str, sz)
+         torch.apply(src, function(sz, src, str)
+                             sum = sum + C.th_sum_real(sz, src, str)
+                             sum2 = sum2 + C.th_sum2_real(sz, src, str)
                           end)
          if flag then
             return (sum2 - sum*sum/n)/n
@@ -467,17 +473,17 @@ register(
          local sumptr = ffi.new('real[1]')
          local sum2ptr = ffi.new('real[1]')
          if flag then
-            torch.dimapply2(res, src, dim,
-                            function(res, resst, ressz,
-                                     src, srcst, srcsz)
-                               th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
+            torch.dimapply2(src, res, dim,
+                            function(srcsz, src, srcst,
+                                     ressz, res, resst)
+                               C.th_sum_sum2_real(srcsz, src, srcst, sumptr, sum2ptr)
                                res[0] = (sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/srcsz
                             end)
          else
-            torch.dimapply2(res, src, dim,
-                            function(res, resst, ressz,
-                                     src, srcst, srcsz)
-                               th.sum_sum2_real(sumptr, sum2ptr, src, srcst, srcsz)
+            torch.dimapply2(src, res, dim,
+                            function(srcsz, src, srcst,
+                                     ressz, res, resst)
+                               C.th_sum_sum2_real(srcsz, src, srcst, sumptr, sum2ptr)
                                res[0] = (sum2ptr[0] - sumptr[0]*sumptr[0]/srcsz)/(srcsz-1)
                             end)
          end
@@ -500,9 +506,9 @@ register(
          src = src or self
 
          res:resizeAs(x)
-         torch.apply2(res, src,
-                      function(res, strres, src, strsrc, sz)
-                         th.add_real(res, strres, src, strsrc, sz, value)
+         torch.apply2(src, res,
+                      function(sz, src, strsrc, res, strres)
+                         C.th_add_real(sz, value, src, strsrc, res, strres)
                       end)
          return res
       end,
@@ -517,9 +523,9 @@ register(
          src1 = src1 or dst
 
          res:resizeAs(src1)
-         torch.apply3(res, src1, src2,
-                      function(res, resst, src1, src1st, src2, src2st, sz)
-                         th.cadd_real(res, resst, src1, src1st, src2, src2st, sz, value)
+         torch.apply3(src1, src2, res,
+                      function(sz, src1, src1st, src2, src2st, res, resst)
+                         C.th_cadd_real(sz, src1, src1st, value, src2, src2st, res, resst)
                       end)
          return res
       end}
@@ -539,9 +545,9 @@ register(
          src = src or dst
 
          res:resizeAs(src)
-         torch.apply2(res, src,
-                      function(y, stry, x, strx, sz)
-                         th.mul_real(y, stry, x, strx, sz, value)
+         torch.apply2(src, res,
+                      function(sz, x, strx, y, stry)
+                         C.th_mul_real(sz, value, x, strx, y, stry)
                       end)
          return res
       end
@@ -562,7 +568,7 @@ register(
          src1 = src1 or dst
 
          res:resizeAs(src1)
-         torch.apply3(res, src1, src2, th.cmul_real)
+         torch.apply3(src1, src2, res, C.th_cmul_real)
          return res
       end
    }
@@ -583,9 +589,9 @@ register(
          src = src or dst
 
          res:resizeAs(src)
-         torch.apply2(res, src,
-                      function(res, strres, src, strsrc, sz)
-                         th.div_real(res, strres, src, strsrc, sz, value)
+         torch.apply2(src, res,
+                      function(sz, src, strsrc, res, strres)
+                         C.th_div_real(sz, value, src, strsrc, res, strres)
                       end)
          return res
       end
@@ -606,7 +612,7 @@ register(
          src1 = src1 or dst
 
          res:resizeAs(src1)
-         torch.apply3(res, src1, src2, th.cdiv_real)
+         torch.apply3(src1, src2, res, C.th_cdiv_real)
          return res
       end
    }
@@ -627,9 +633,9 @@ register(
          src1 = src1 or dst
 
          res:resizeAs(src1)
-         torch.apply3(res, src1, src2,
-                      function(res, resst, src1, src1st, src2, src2st, sz)
-                         th.addcmul_real(res, resst, src1, src1st, src2, src2st, sz, value)
+         torch.apply3(src1, src2, res,
+                      function(sz, src1, src1st, src2, src2st, res, resst)
+                         C.th_addcmul_real(sz, value, src1, src1st, src2, src2st, res, resst)
                       end)
          return res
       end
@@ -651,9 +657,9 @@ register(
          src1 = src1 or dst
 
          res:resizeAs(src1)
-         torch.apply3(res, src1, src2,
-                      function(res, resst, src1, src1st, src2, src2st, sz)
-                         th.addcdiv_real(res, resst, src1, src1st, src2, src2st, sz, value)
+         torch.apply3(src1, src2, res,
+                      function(sz, src1, src1st, src2, src2st, res, resst)
+                         C.th_addcdiv_real(sz, value, src1, src1st, src2, src2st, res, resst)
                       end)
          return res
       end
@@ -675,9 +681,11 @@ register(
          assert(src.__nDimension == 2, 'matrix expected')
 
          res:resize(math.min(src:size(1), src:size(2)))
-         return tonumber(th.sum_real(src:data(),
-                                     src:stride(1)+src:stride(2),
-                                     math.min(src:size(1), src:size(2))))
+         return tonumber(C.th_sum_real(math.min(src:size(1), src:size(2)),
+                                       src:data(),
+                                       src:stride(1)+src:stride(2)
+                                 )
+                      )
       end
    }
 )
@@ -685,9 +693,7 @@ register(
 for _,name in ipairs{'log', 'log1p', 'exp', 'cos', 'acos', 'cosh', 'sin', 'asin',
                      'sinh', 'tan', 'atan', 'tanh', 'sqrt', 'ceil', 'floor', 'abs'} do
 
-   ffi.cdef(string.format('void %s_float(float *y, long stry, float *x, long strx, long sz);', name)) -- DEBUG: see below
-
-   local func = th[name .. '_float'] -- DEBUG: *MUST* be real here, but i did not defined them yet ;)
+   local func = C['th_' .. name .. '_real']
    register(
       name,
       {
@@ -701,14 +707,12 @@ for _,name in ipairs{'log', 'log1p', 'exp', 'cos', 'acos', 'cosh', 'sin', 'asin'
             src = src or dst
 
             res:resizeAs(src)
-            torch.apply2(res, src, func)
+            torch.apply2(src, res, func)
             return res
          end
       }
    )
 end
-
-ffi.cdef('void pow_float(float *y, long stry, float *x, long strx, long sz, float value);')
 
 register(
    "pow",
@@ -724,9 +728,9 @@ register(
          src = src or dst
 
          res:resizeAs(src)
-         torch.apply2(res, src,
-                      function(res, resst, src, srcst, sz)
-                         th.pow_real(res, resst, src, srcst, sz, value)
+         torch.apply2(src, res,
+                      function(sz, src, srcst, res, resst)
+                         C.th_pow_real(sz, value, src, srcst, res, resst)
                       end)
          return res
       end
@@ -787,11 +791,11 @@ register(
          if src.__nDimension == 1 then
             local sz = src.__size[0] + (k >= 0 and k or -k)
             res:resize(sz, sz):zero()
-            th.copy_real(res:data() + (k >= 0 and k*res.__stride[1] or -k*res.__stride[0]),
-                         res.__stride[0]+res.__stride[1],
-                         src:data(),
-                         src.__stride[0],
-                         sz)
+            C.th_copy_real(sz,
+                           src:data(),
+                           src.__stride[0],
+                           res:data() + (k >= 0 and k*res.__stride[1] or -k*res.__stride[0]),
+                           res.__stride[0]+res.__stride[1])
          else
             local sz
             if k >= 0 then
@@ -800,11 +804,11 @@ register(
                sz = math.min(tonumber(src.__size[0])+k, tonumber(src.__size[1]))
             end
             res:resize(sz)
-            th.copy_real(res:data(),
-                         res.__stride[0],
-                         src:data() + (k >= 0 and k*src.__stride[1] or -k*src.__stride[0]),
-                         src.__stride[0]+src.__stride[1],
-                         sz)
+            C.th_copy_real(sz,
+                           src:data() + (k >= 0 and k*src.__stride[1] or -k*src.__stride[0]),
+                           src.__stride[0]+src.__stride[1],
+                           res:data(),
+                           res.__stride[0])
          end
          return res
       end
@@ -836,30 +840,30 @@ register(
          end
 
          if mat.__stride[0] == 1 then
-            th.gemv_real(string.byte('n'),
-                         mat.__size[0], mat.__size[1],
-                         alpha,
-                         mat:data(), mat.__stride[1],
-                         vec:data(), vec.__stride[0],
-                         beta,
-                         res:data(), res.__stride[0]);
+            C.th_gemv_real(string.byte('n'),
+                           mat.__size[0], mat.__size[1],
+                           alpha,
+                           mat:data(), mat.__stride[1],
+                           vec:data(), vec.__stride[0],
+                           beta,
+                           res:data(), res.__stride[0]);
          elseif mat.__stride[1] == 1 then
-            th.gemv_real(string.byte('t'),
-                         mat.__size[1], mat.__size[0],
-                         alpha,
-                         mat:data(), mat.__stride[0],
-                         vec:data(), vec.__stride[0],
-                         beta,
-                         res:data(), res.__stride[0]);
+            C.th_gemv_real(string.byte('t'),
+                           mat.__size[1], mat.__size[0],
+                           alpha,
+                           mat:data(), mat.__stride[0],
+                           vec:data(), vec.__stride[0],
+                           beta,
+                           res:data(), res.__stride[0]);
          else
             mat = mat:contiguous()
-            th.gemv_real(string.byte('t'),
-                         mat.__size[1], mat.__size[0],
-                         alpha,
-                         mat:data(), mat.__stride[0],
-                         vec:data(), vec.__stride[0],
-                         beta,
-                         res:data(), res.__stride[0]);
+            C.th_gemv_real(string.byte('t'),
+                           mat.__size[1], mat.__size[0],
+                           alpha,
+                           mat:data(), mat.__stride[0],
+                           vec:data(), vec.__stride[0],
+                           beta,
+                           res:data(), res.__stride[0]);
          end
 
          return res
@@ -879,7 +883,7 @@ register(
          local res = dst or torch.Tensor()
          res:resize(size)
          torch.apply(res,
-                     function(dst, str, sz)
+                     function(sz, dst, str)
                         for i=0,sz-1 do
                            dst[i*str] = torch.random()/2^32
                         end
@@ -902,7 +906,7 @@ register(
          local res = dst or torch.Tensor()
          res:resize(size)
          torch.apply(res,
-                     function(dst, str, sz)
+                     function(sz, dst, str)
                         for i=0,sz-1 do
                            dst[i*str] = torch.normal()
                         end
@@ -922,8 +926,8 @@ register(
          self="dst"
       },
       function(dst, src)
-         torch.apply2(dst, src,
-                      th.copy_real_real)
+         torch.apply2(src, dst,
+                      C.th_copy_real_real)
       end,
 
       {
@@ -932,8 +936,8 @@ register(
          self="dst"
       },
       function(dst, src)
-         torch.apply2(dst, src,
-                      th.copy_real_byte)
+         torch.apply2(src, dst,
+                      C.th_copy_real_byte)
       end,
 
       {
@@ -942,8 +946,8 @@ register(
          self="dst"
       },
       function(dst, src)
-         torch.apply2(dst, src,
-                      th.copy_real_char)
+         torch.apply2(src, dst,
+                      C.th_copy_real_char)
       end,
 
       {
@@ -952,8 +956,8 @@ register(
          self="dst"
       },
       function(dst, src)
-         torch.apply2(dst, src,
-                      th.copy_real_short)
+         torch.apply2(src, dst,
+                      C.th_copy_real_short)
       end,
 
       {
@@ -962,8 +966,8 @@ register(
          self="dst"
       },
       function(dst, src)
-         torch.apply2(dst, src,
-                      th.copy_real_int)
+         torch.apply2(src, dst,
+                      C.th_copy_real_int)
       end,
 
       {
@@ -972,8 +976,8 @@ register(
          self="dst"
       },
       function(dst, src)
-         torch.apply2(dst, src,
-                      th.copy_real_long)
+         torch.apply2(src, dst,
+                      C.th_copy_real_long)
       end,
 
       {
@@ -982,8 +986,8 @@ register(
          self="dst"
       },
       function(dst, src)
-         torch.apply2(dst, src,
-                      th.copy_real_float)
+         torch.apply2(src, dst,
+                      C.th_copy_real_float)
       end,
 
       {
@@ -992,8 +996,8 @@ register(
          self="dst"
       },
       function(dst, src)
-         torch.apply2(dst, src,
-                      th.copy_real_double)
+         torch.apply2(src, dst,
+                      C.th_copy_real_double)
       end
    }
 )
