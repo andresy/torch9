@@ -4,9 +4,6 @@ local dispatch = require 'torch.dispatch'
 local argcheck = require 'torch.argcheck'
 local torch = require 'torch'
 
--- DEBUG:
--- if returning stuff like th.sum_float directly, then one should do tonumber(), i think
-
 ffi.cdef[[
       void zero_real(real *x, long str, long sz);
       void fill_real(real *x, long str, long sz, real value);
@@ -713,9 +710,9 @@ register(
          assert(src.__nDimension == 2, 'matrix expected')
 
          res:resize(math.min(src:size(1), src:size(2)))
-         return th.sum_real(src:data(),
-                            src:stride(1)+src:stride(2),
-                            math.min(src:size(1), src:size(2)))
+         return tonumber(th.sum_real(src:data(),
+                                     src:stride(1)+src:stride(2),
+                                     math.min(src:size(1), src:size(2))))
       end
    }
 )
