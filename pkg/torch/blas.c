@@ -1,6 +1,6 @@
 #include <limits.h>
 
-void swap_real(long n, real *x, long incx, real *y, long incy)
+void th_swap_real(long n, real *x, long incx, real *y, long incy)
 {
   if(n == 1)
   {
@@ -36,7 +36,7 @@ void swap_real(long n, real *x, long incx, real *y, long incy)
   }
 }
 
-void scal_real(long n, real a, real *x, long incx)
+void th_scal_real(long n, real a, real *x, long incx)
 {
   if(n == 1)
     incx = 1;
@@ -63,8 +63,8 @@ void scal_real(long n, real a, real *x, long incx)
       x[i*incx] *= a;
   }
 }
-/*
-void copy_real(long n, real *x, long incx, real *y, long incy)
+
+void th_copy_real(long n, real *x, long incx, real *y, long incy)
 {
   if(n == 1)
   {
@@ -95,9 +95,8 @@ void copy_real(long n, real *x, long incx, real *y, long incy)
       y[i*incy] = x[i*incx];
   }
 }
-*/
 
-void axpy_real(long n, real a, real *x, long incx, real *y, long incy)
+void th_axpy_real(long n, real a, real *x, long incx, real *y, long incy)
 {
   if(n == 1)
   {
@@ -129,8 +128,8 @@ void axpy_real(long n, real a, real *x, long incx, real *y, long incy)
   }
 }
 
-/*
-real dot_real(long n, real *x, long incx, real *y, long incy)
+
+real th_dot_real(long n, real *x, long incx, real *y, long incy)
 {
   if(n == 1)
   {
@@ -162,9 +161,9 @@ real dot_real(long n, real *x, long incx, real *y, long incy)
     return sum;
   }
 }
-*/
 
-void gemv_real(char trans, long m, long n, real alpha, real *a, long lda, real *x, long incx, real beta, real *y, long incy)
+
+void th_gemv_real(char trans, long m, long n, real alpha, real *a, long lda, real *x, long incx, real beta, real *y, long incy)
 {
   if(n == 1)
     lda = m;
@@ -208,7 +207,7 @@ void gemv_real(char trans, long m, long n, real alpha, real *a, long lda, real *
     else
     {
       if(beta != 1)
-        scal_real(m, beta, y, incy);
+        th_scal_real(m, beta, y, incy);
       
       for(j = 0; j < n; j++)
       {
@@ -221,7 +220,7 @@ void gemv_real(char trans, long m, long n, real alpha, real *a, long lda, real *
   }
 }
 
-void ger_real(long m, long n, real alpha, real *x, long incx, real *y, long incy, real *a, long lda)
+void th_ger_real(long m, long n, real alpha, real *x, long incx, real *y, long incy, real *a, long lda)
 {
   if(n == 1)
     lda = m;
@@ -257,7 +256,7 @@ void ger_real(long m, long n, real alpha, real *x, long incx, real *y, long incy
   }
 }
 
-void gemm_real(char transa, char transb, long m, long n, long k, real alpha, real *a, long lda, real *b, long ldb, real beta, real *c, long ldc)
+void th_gemm_real(char transa, char transb, long m, long n, long k, real alpha, real *a, long lda, real *b, long ldb, real beta, real *c, long ldc)
 {
   int transa_ = ((transa == 't') || (transa == 'T'));
   int transb_ = ((transb == 't') || (transb == 'T'));

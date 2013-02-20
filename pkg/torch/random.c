@@ -1,11 +1,11 @@
 #include <math.h>
 #include <time.h>
 
-unsigned long seed();
-void manualSeed(unsigned long the_seed_);
-unsigned long initialSeed();
-void nextState();
-unsigned long random();
+unsigned long th_seed();
+void th_manualseed(unsigned long the_seed_);
+unsigned long th_initialseed();
+void th_nextstate();
+unsigned long th_random();
 
 /* The initial seed. */
 static unsigned long the_initial_seed;
@@ -19,10 +19,10 @@ static unsigned long *next;
 static unsigned long state[n]; /* the array for the state vector  */
 /********************************/
 
-unsigned long seed()
+unsigned long th_seed()
 {
   unsigned long s = (unsigned long)time(0);
-  manualSeed(s);
+  th_manualseed(s);
   return s;
 }
 
@@ -86,7 +86,7 @@ unsigned long seed()
 #define TWIST(u,v) ((MIXBITS(u,v) >> 1) ^ ((v)&1UL ? MATRIX_A : 0UL))
 /*********************************************************** That's it. */
 
-void manualSeed(unsigned long the_seed_)
+void th_manualseed(unsigned long the_seed_)
 {
   int j;
   the_initial_seed = the_seed_;
@@ -104,17 +104,17 @@ void manualSeed(unsigned long the_seed_)
   initf = 1;
 }
 
-unsigned long initialSeed()
+unsigned long th_initialseed()
 {
   if(initf == 0)
   {
-    seed();
+    th_seed();
   }
 
   return the_initial_seed;
 }
 
-void nextState()
+void th_nextstate()
 {
   unsigned long *p=state;
   int j;
@@ -122,7 +122,7 @@ void nextState()
   /* if init_genrand() has not been called, */
   /* a default initial seed is used         */
   if(initf == 0)
-    seed();
+    th_seed();
 
   left = n;
   next = state;
@@ -136,12 +136,12 @@ void nextState()
   *p = p[m-n] ^ TWIST(p[0], state[0]);
 }
 
-unsigned long random()
+unsigned long th_random()
 {
   unsigned long y;
 
   if (--left == 0)
-    nextState();
+    th_nextstate();
   y = *next++;
   
   /* Tempering */

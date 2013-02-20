@@ -1,15 +1,6 @@
 local torch = require 'torch'
 local ffi = require 'ffi'
 local argcheck = require 'torch.argcheck'
-
-ffi.cdef[[
-      unsigned long seed();
-      void manualSeed(unsigned long the_seed_);
-      unsigned long initialSeed();
-      void nextState();
-      unsigned long random();
-]]
-
 local th = require 'torch.clib'
 
 torch.random = argcheck(

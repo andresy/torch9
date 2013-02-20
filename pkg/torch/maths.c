@@ -1,51 +1,34 @@
 #include <math.h>
 #include <string.h>
 
-void zero_real(real *x, long str, long sz)
+void th_zero_real(long sz, real *x, long inc)
 {
-  if(str == 1)
+  if(inc == 1)
     memset(x, 0, sizeof(real)*sz);
   else
   {
     long i;    
     for(i = 0; i < sz; i++)
-      x[i*str] = 0;
+      x[i*inc] = 0;
   }
 }
 
-void fill_real(real *x, long str, long sz, real value)
+void th_fill_real(long sz, real *x, long inc, real value)
 {
   long i;
 
   for(i = 0; i < sz; i++)
-    x[i*str] = value;
+    x[i*inc] = value;
 }
 
-void copy_real(real *y, long stry, real *x, long strx, long sz)
-{
-  long i;
-
-  for(i = 0; i < sz; i++)
-    y[i*stry] = x[i*strx];
-}
-
-real dot_real(real *x, long strx, real *y, long stry, long sz)
-{
-  long i;
-  accreal sum = 0;
-  for(i = 0; i < sz; i++)
-    sum += x[i*strx]*y[i*stry];
-  return (real)sum;
-}
-
-void min_real(real *min_, long *idx_, real *x, long strx, long sz)
+void th_min_real(long sz, real *x, long incx, real *min_, long *idx_)
 {
   long i;
   real min = (sz > 0 ? x[0] : 0);
   long idx = 1; /* lua */
   for(i = 1; i < sz; i++)
   {
-    real z = x[i*strx];
+    real z = x[i*incx];
     if(z < min)
     {
       min = z;
@@ -56,14 +39,14 @@ void min_real(real *min_, long *idx_, real *x, long strx, long sz)
   *idx_ = idx;
 }
 
-void max_real(real *max_, long *idx_, real *x, long strx, long sz)
+void th_max_real(long sz, real *x, long incx, real *max_, long *idx_)
 {
   long i;
   real max = (sz > 0 ? x[0] : 0);
   long idx = 1; /* lua */
   for(i = 1; i < sz; i++)
   {
-    real z = x[i*strx];
+    real z = x[i*incx];
     if(z > max)
     {
       max = z;
@@ -74,35 +57,35 @@ void max_real(real *max_, long *idx_, real *x, long strx, long sz)
   *idx_ = idx;
 }
 
-real sum_real(real *x, long strx, long sz)
+real th_sum_real(long sz, real *x, long incx)
 {
   long i;
   accreal sum = 0;
   for(i = 0; i < sz; i++)
-    sum += x[i*strx];
+    sum += x[i*incx];
   return (real)sum;
 }
 
-real sum2_real(real *x, long strx, long sz)
+real th_sum2_real(long sz, real *x, long incx)
 {
   long i;
   accreal sum2 = 0;
   for(i = 0; i < sz; i++)
   {
-    real z = x[i*strx];
+    real z = x[i*incx];
     sum2 += z*z;
   }
   return (real)sum2;
 }
 
-void sum_sum2_real(real *sum_, real *sum2_, real *x, long strx, long sz)
+void th_sum_sum2_real(long sz, real *x, long incx, real *sum_, real *sum2_)
 {
   long i;
   accreal sum = 0;
   accreal sum2 = 0;
   for(i = 0; i < sz; i++)
   {
-    real z = x[i*strx];
+    real z = x[i*incx];
     sum += z;
     sum2 += z*z;
   }
@@ -110,58 +93,58 @@ void sum_sum2_real(real *sum_, real *sum2_, real *x, long strx, long sz)
   *sum2_ = sum2;
 }
 
-void prod_real(real *prod_, real *x, long strx, long sz)
+real th_prod_real(long sz, real *x, long incx)
 {
   long i;
   accreal prod = (sz > 0 ? x[0] : 0);
   for(i = 1; i < sz; i++)
-    prod *= x[i*strx];
-  *prod_ = (real)prod;
+    prod *= x[i*incx];
+  return (real)prod;
 }
 
-void cumsum_real(real *cumsum, long cumsumst, long cumsumsz, real *x, long strx, long sz)
+void th_cumsum_real(long sz, real *x, long incx, real *cumsum, long inccumsum)
 {
   long i;
   accreal sum = 0;
   for(i = 0; i < sz; i++)
   {
-    sum += x[i*strx];
-    cumsum[i*cumsumst] = (real)sum;
+    sum += x[i*incx];
+    cumsum[i*inccumsum] = (real)sum;
   }
 }
 
-void cumprod_real(real *cumprod, long cumprodst, long cumprodsz, real *x, long strx, long sz)
+void th_cumprod_real(long sz, real *x, long incx, real *cumprod, long inccumprod)
 {
   long i;
   accreal prod = 1;
   for(i = 0; i < sz; i++)
   {
-    prod *= x[i*strx];
-    cumprod[i*cumprodst] = (real)prod;
+    prod *= x[i*incx];
+    cumprod[i*inccumprod] = (real)prod;
   }
 }
 
-real norm_real(real *x, long strx, long sz, real n, int dopow)
+real th_norm_real(long sz, real *x, long incx, real n, int dopow)
 {
   long i;
   accreal sum = 0;
   if(n == 1.0)
   {
     for(i = 0; i < sz; i++)
-      sum += fabs(x[i*strx]);
+      sum += fabs(x[i*incx]);
   }
   else if(n == 2.0)
   {
     for(i = 0; i < sz; i++)
     {
-      real z = x[i*strx];
+      real z = x[i*incx];
       sum += z*z;
     }
   }
   else
   {
     for(i = 0; i < sz; i++)
-      sum += pow(fabs(x[i*strx]), n);
+      sum += pow(fabs(x[i*incx]), n);
   }
 
   if(dopow)
@@ -170,68 +153,68 @@ real norm_real(real *x, long strx, long sz, real n, int dopow)
     return (real)sum;
 }
 
-void add_real(real *y, long stry, real *x, long strx, long sz, real value)
+void th_add_real(long sz, real *x, long incx, real value, real *y, long incy)
 {
   long i;
   for(i = 0; i < sz; i++)
-    y[i*stry] = x[i*strx] + value;
+    y[i*incy] = x[i*incx] + value;
 }
 
-void cadd_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value)
+void th_cadd_real(long sz, real *x, long incx, real value, real *y, long incy, real *z, long incz)
 {
   long i;
   for(i = 0; i < sz; i++)
-    z[i*strz] = y[i*strx] + value*x[i*stry];
+    z[i*incz] = x[i*incx] + value*y[i*incy];
 }
 
-void mul_real(real *y, long stry, real *x, long strx, long sz, real value)
+void th_mul_real(long sz, real *x, long incx, real value, real *y, long incy)
 {
   long i;
   for(i = 0; i < sz; i++)
-    y[i*stry] = x[i*strx] * value;
+    y[i*incy] = x[i*incx] * value;
 }
 
-void cmul_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz)
+void th_cmul_real(long sz, real *x, long incx, real *y, long incy, real *z, long incz)
 {
   long i;
   for(i = 0; i < sz; i++)
-    z[i*strz] = x[i*strx] * y[i*stry];
+    z[i*incz] = x[i*incx] * y[i*incy];
 }
 
-void div_real(real *y, long stry, real *x, long strx, long sz, real value)
+void th_div_real(long sz, real *x, long incx, real value, real *y, long incy)
 {
   long i;
   for(i = 0; i < sz; i++)
-    y[i*stry] = x[i*strx] / value;
+    y[i*incy] = x[i*incx] / value;
 }
 
-void cdiv_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz)
+void th_cdiv_real(long sz, real *x, long incx, real *y, long incy, real *z, long incz)
 {
   long i;
   for(i = 0; i < sz; i++)
-    z[i*strz] = x[i*strx] / y[i*stry];
+    z[i*incz] = x[i*incx] / y[i*incy];
 }
 
-void addcmul_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value)
+void th_addcmul_real(long sz, real value, real *x, long incx, real *y, long incy, real *z, long incz)
 {
   long i;
   for(i = 0; i < sz; i++)
-    z[i*strz] += value * x[i*strx] * y[i*stry];
+    z[i*incz] += value * x[i*incx] * y[i*incy];
 }
 
-void addcdiv_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value)
+void th_addcdiv_real(long sz, real value, real *x, long incx, real *y, long incy, real *z, long incz)
 {
   long i;
   for(i = 0; i < sz; i++)
-    z[i*strz] += value * x[i*strx] / y[i*stry];
+    z[i*incz] += value * x[i*incx] / y[i*incy];
 }
 
 #define BASIC_FUNC(NAME)                                                \
-  void NAME##_real(real *y, long stry, real *x, long strx, long sz)  \
+  void th_##NAME##_real(long sz, real *x, long incx, real *y, long incy) \
   {                                                                     \
     long i;                                                             \
     for(i = 0; i < sz; i++)                                             \
-      y[i*stry] = NAME(x[i*strx]);                                      \
+      y[i*incy] = NAME(x[i*incx]);                                      \
   }                                                                     \
 
 
@@ -251,26 +234,26 @@ BASIC_FUNC(sqrt)
 BASIC_FUNC(ceil)
 BASIC_FUNC(floor)
 
-void abs_real(real *y, long stry, real *x, long strx, long sz)
+void th_abs_real(long sz, real *x, long incx, real *y, long incy)
 {
   long i;
   for(i = 0; i < sz; i++)
-    y[i*stry] = fabs(x[i*strx]);
+    y[i*incy] = fabs(x[i*incx]);
 }
 
-void pow_real(real *y, long stry, real *x, long strx, long sz, real value)
+void th_pow_real(long sz, real *x, long incx, real value, real *y, long incy)
 {
   long i;
   for(i = 0; i < sz; i++)
-    y[i*stry] = pow(x[i*strx], value);
+    y[i*incy] = pow(x[i*incx], value);
 }
 
 #define COPY_REAL(REAL)                                                 \
-  void copy_real_##REAL(real *y, long sty, REAL *x, long stx, long sz)  \
+  void th_copy_real_##REAL(long sz, REAL *x, long incx, real *y, long incy) \
   {                                                                     \
     long i;                                                             \
     for(i = 0; i < sz; i++)                                             \
-      y[i*sty] = (real)x[i*stx];                                        \
+      y[i*incy] = (real)x[i*incx];                                        \
   }                                                                     \
 
 COPY_REAL(byte)

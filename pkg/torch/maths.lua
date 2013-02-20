@@ -3,41 +3,6 @@ local namedispatch = require 'torch.namedispatch'
 local dispatch = require 'torch.dispatch'
 local argcheck = require 'torch.argcheck'
 local torch = require 'torch'
-
-ffi.cdef[[
-      void zero_real(real *x, long str, long sz);
-      void fill_real(real *x, long str, long sz, real value);
-      void copy_real(real *y, long stry, real *x, long strx, long sz);
-      real dot_real(real *x, long strx, real *y, long stry, long sz);
-      void min_real(real *min_, long *idx_, real *x, long strx, long sz);
-      void max_real(real *max_, long *idx_, real *x, long strx, long sz);
-      real sum_real(real *x, long strx, long sz);
-      void prod_real(real *prod_, real *x, long strx, long sz);
-      real norm_real(real *x, long strx, long sz, real n, int dopow);
-      void cumsum_real(real *cumsum, long cumsumst, long cumsumsz, real *x, long strx, long sz);
-      void cumprod_real(real *cumprod, long cumprodst, long cumprodsz, real *x, long strx, long sz);
-      real sum2_real(real *x, long strx, long sz);
-      void sum_sum2_real(real *sum_, real *sum2_, real *x, long strx, long sz);
-      void add_real(real *y, long stry, real *x, long strx, long sz, real value);
-      void cadd_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value);
-      void mul_real(real *y, long stry, real *x, long strx, long sz, real value);
-      void cmul_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz);
-      void div_real(real *y, long stry, real *x, long strx, long sz, real value);
-      void cdiv_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz);
-      void addcmul_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value);
-      void addcdiv_real(real *z, long strz, real *y, long stry, real *x, long strx, long sz, real value);
-
-      void gemv_real(char trans, long m, long n, real alpha, real *a, long lda, real *x, long incx, real beta, real *y, long incy);
-
-      void copy_real_byte(real *y, long sty, byte *x, long stx, long sz);
-      void copy_real_char(real *y, long sty, char *x, long stx, long sz);
-      void copy_real_short(real *y, long sty, short *x, long stx, long sz);
-      void copy_real_int(real *y, long sty, int *x, long stx, long sz);
-      void copy_real_long(real *y, long sty, long *x, long stx, long sz);
-      void copy_real_float(real *y, long sty, float *x, long stx, long sz);
-      void copy_real_double(real *y, long sty, double *x, long stx, long sz);
-]]
-
 local th = require 'torch.clib'
 
 print('we loaded real')
