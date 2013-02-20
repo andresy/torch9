@@ -35,8 +35,8 @@ register(
       },
       function(dst, value)
          torch.apply(dst,
-                     function(sz, dst, str)
-                        C.th_fill_real(sz, value, dst, str)
+                     function(sz, dst, inc)
+                        C.th_fill_real(sz, value, dst, inc)
                      end)
          return dst
       end
@@ -68,8 +68,8 @@ register(
       function(src1, src2)
          local sum = 0
          torch.apply2(src1, src2,
-                      function(sz, src1, strsrc1, src2, strsrc2)
-                         sum = sum + C.th_dot_real(sz, src1, strsrc1, src2, strsrc2)
+                      function(sz, src1, incsrc1, src2, incsrc2)
+                         sum = sum + C.th_dot_real(sz, src1, incsrc1, src2, incsrc2)
                       end)
          return sum
       end
@@ -88,8 +88,8 @@ register(
          local minptr = ffi.new('real[1]')
          local idsrcptr = ffi.new('long[1]')
          torch.apply(src,
-                     function(sz, src, str)
-                        C.th_min_real(sz, src, str, minptr, idsrcptr)
+                     function(sz, src, inc)
+                        C.th_min_real(sz, src, inc, minptr, idsrcptr)
                         min = math.min(min, minptr[0])
                      end)
          return min
@@ -134,8 +134,8 @@ register(
          local maxptr = ffi.new('real[1]')
          local idsrcptr = ffi.new('long[1]')
          torch.apply(src,
-                     function(sz, src, str)
-                        C.th_max_real(sz, src, str, maxptr, idsrcptr)
+                     function(sz, src, inc)
+                        C.th_max_real(sz, src, inc, maxptr, idsrcptr)
                         max = math.max(max, maxptr[0])
                      end)
          return max
@@ -177,8 +177,8 @@ register(
       },
       function(src)
          local sum = 0
-         torch.apply(src, function(sz, src, str)
-                             sum = sum + C.th_sum_real(sz, src, str)
+         torch.apply(src, function(sz, src, inc)
+                             sum = sum + C.th_sum_real(sz, src, inc)
                           end)
          return sum
       end,
@@ -216,8 +216,8 @@ register(
       function(src)
          local prod = (src:nElement() > 0) and 1 or 0
          torch.apply(src,
-                     function(sz, src, str)
-                        prod = prod * tonumber( C.th_prod_real(sz, src, str) )
+                     function(sz, src, inc)
+                        prod = prod * tonumber( C.th_prod_real(sz, src, inc) )
                      end)
          return prod
       end,
@@ -306,8 +306,8 @@ register(
       function(src, n)
          local norm = 0
          torch.apply(src,
-                     function(sz, src, str)
-                        norm = norm + C.th_norm_real(sz, n, 0, src, str)
+                     function(sz, src, inc)
+                        norm = norm + C.th_norm_real(sz, n, 0, src, inc)
                      end)
          return math.pow(norm, 1/n)
       end,
@@ -345,8 +345,8 @@ register(
       },
       function(src)
          local sum = 0
-         torch.apply(src, function(sz, src, str)
-                             sum = sum + C.th_sum_real(sz, src, str)
+         torch.apply(src, function(sz, src, inc)
+                             sum = sum + C.th_sum_real(sz, src, inc)
                           end)
          return sum / src:nElement()
       end,
@@ -386,9 +386,9 @@ register(
          local sum2 = 0
          local n = src:nElement()
          torch.apply(src,
-                     function(sz, src, str)
-                        sum = sum + C.th_sum_real(sz, src, str)
-                        sum2 = sum2 + C.th_sum2_real(sz, src, str)
+                     function(sz, src, inc)
+                        sum = sum + C.th_sum_real(sz, src, inc)
+                        sum2 = sum2 + C.th_sum2_real(sz, src, inc)
                      end)
          if flag then
             return math.sqrt((sum2 - sum*sum/n)/n)
@@ -445,9 +445,9 @@ register(
          local sum = 0
          local sum2 = 0
          local n = src:nElement()
-         torch.apply(src, function(sz, src, str)
-                             sum = sum + C.th_sum_real(sz, src, str)
-                             sum2 = sum2 + C.th_sum2_real(sz, src, str)
+         torch.apply(src, function(sz, src, inc)
+                             sum = sum + C.th_sum_real(sz, src, inc)
+                             sum2 = sum2 + C.th_sum2_real(sz, src, inc)
                           end)
          if flag then
             return (sum2 - sum*sum/n)/n
@@ -507,8 +507,8 @@ register(
 
          res:resizeAs(x)
          torch.apply2(src, res,
-                      function(sz, src, strsrc, res, strres)
-                         C.th_add_real(sz, value, src, strsrc, res, strres)
+                      function(sz, src, incsrc, res, incres)
+                         C.th_add_real(sz, value, src, incsrc, res, incres)
                       end)
          return res
       end,
@@ -546,8 +546,8 @@ register(
 
          res:resizeAs(src)
          torch.apply2(src, res,
-                      function(sz, x, strx, y, stry)
-                         C.th_mul_real(sz, value, x, strx, y, stry)
+                      function(sz, src, incsrc, res, incres)
+                         C.th_mul_real(sz, value, src, incsrc, res, incres)
                       end)
          return res
       end
@@ -590,8 +590,8 @@ register(
 
          res:resizeAs(src)
          torch.apply2(src, res,
-                      function(sz, src, strsrc, res, strres)
-                         C.th_div_real(sz, value, src, strsrc, res, strres)
+                      function(sz, src, incsrc, res, incres)
+                         C.th_div_real(sz, value, src, incsrc, res, incres)
                       end)
          return res
       end
@@ -883,9 +883,9 @@ register(
          local res = dst or torch.Tensor()
          res:resize(size)
          torch.apply(res,
-                     function(sz, dst, str)
+                     function(sz, dst, inc)
                         for i=0,sz-1 do
-                           dst[i*str] = torch.random()/2^32
+                           dst[i*inc] = torch.random()/2^32
                         end
                      end)
          return res
@@ -906,9 +906,9 @@ register(
          local res = dst or torch.Tensor()
          res:resize(size)
          torch.apply(res,
-                     function(sz, dst, str)
+                     function(sz, dst, inc)
                         for i=0,sz-1 do
-                           dst[i*str] = torch.normal()
+                           dst[i*inc] = torch.normal()
                         end
                      end)
          return res

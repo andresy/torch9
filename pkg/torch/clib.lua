@@ -34,7 +34,7 @@ void th_cumprod_real(long sz, real *x, long incx, real *cumprod, long inccumprod
 real th_norm_real(long sz, real n, int dopow, real *x, long incx);
 void th_add_real(long sz, real value, real *x, long incx, real *y, long incy);
 void th_cadd_real(long sz, real *x, long incx, real value, real *y, long incy, real *z, long incz);
-void th_mul_real(long sz, real *x, long incx, real value, real *y, long incy);
+void th_mul_real(long sz, real value, real *x, long incx, real *y, long incy);
 void th_cmul_real(long sz, real *x, long incx, real *y, long incy, real *z, long incz);
 void th_div_real(long sz, real value, real *x, long incx, real *y, long incy);
 void th_cdiv_real(long sz, real *x, long incx, real *y, long incy, real *z, long incz);

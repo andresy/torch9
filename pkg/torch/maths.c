@@ -167,7 +167,7 @@ void th_cadd_real(long sz, real *x, long incx, real value, real *y, long incy, r
     z[i*incz] = x[i*incx] + value*y[i*incy];
 }
 
-void th_mul_real(long sz, real *x, long incx, real value, real *y, long incy)
+void th_mul_real(long sz, real value, real *x, long incx, real *y, long incy)
 {
   long i;
   for(i = 0; i < sz; i++)
