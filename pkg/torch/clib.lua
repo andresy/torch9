@@ -12,7 +12,7 @@ end
 local ffi = require 'ffi'
 
 for _, ctype in ipairs{'byte', 'char', 'short', 'int', 'long', 'float', 'double'} do
-   ffi.cdef(string.gsub([[
+   local defs = string.gsub([[
 void th_swap_real(long n, real *x, long incx, real *y, long incy);
 void th_scal_real(long n, real a, real *x, long incx);
 void th_copy_real(long n, real *x, long incx, real *y, long incy);
@@ -22,7 +22,7 @@ void th_gemv_real(char trans, long m, long n, real alpha, real *a, long lda, rea
 void th_ger_real(long m, long n, real alpha, real *x, long incx, real *y, long incy, real *a, long lda);
 void th_gemm_real(char transa, char transb, long m, long n, long k, real alpha, real *a, long lda, real *b, long ldb, real beta, real *c, long ldc);
 void th_zero_real(long sz, real *x, long inc);
-void th_fill_real(long sz, real *x, long inc, real value);
+void th_fill_real(long sz, real value, real *x, long inc);
 void th_min_real(long sz, real *x, long incx, real *min_, long *idx_);
 void th_max_real(long sz, real *x, long incx, real *max_, long *idx_);
 real th_sum_real(long sz, real *x, long incx);
@@ -31,12 +31,12 @@ void th_sum_sum2_real(long sz, real *x, long incx, real *sum_, real *sum2_);
 real th_prod_real(long sz, real *x, long incx);
 void th_cumsum_real(long sz, real *x, long incx, real *cumsum, long inccumsum);
 void th_cumprod_real(long sz, real *x, long incx, real *cumprod, long inccumprod);
-real th_norm_real(long sz, real *x, long incx, real n, int dopow);
-void th_add_real(long sz, real *x, long incx, real value, real *y, long incy);
+real th_norm_real(long sz, real n, int dopow, real *x, long incx);
+void th_add_real(long sz, real value, real *x, long incx, real *y, long incy);
 void th_cadd_real(long sz, real *x, long incx, real value, real *y, long incy, real *z, long incz);
 void th_mul_real(long sz, real *x, long incx, real value, real *y, long incy);
 void th_cmul_real(long sz, real *x, long incx, real *y, long incy, real *z, long incz);
-void th_div_real(long sz, real *x, long incx, real value, real *y, long incy);
+void th_div_real(long sz, real value, real *x, long incx, real *y, long incy);
 void th_cdiv_real(long sz, real *x, long incx, real *y, long incy, real *z, long incz);
 void th_addcmul_real(long sz, real value, real *x, long incx, real *y, long incy, real *z, long incz);
 void th_addcdiv_real(long sz, real value, real *x, long incx, real *y, long incy, real *z, long incz);
@@ -56,7 +56,7 @@ void th_sqrt_real(long sz, real *x, long incx, real *y, long incy);
 void th_ceil_real(long sz, real *x, long incx, real *y, long incy);
 void th_floor_real(long sz, real *x, long incx, real *y, long incy);
 void th_abs_real(long sz, real *x, long incx, real *y, long incy);
-void th_pow_real(long sz, real *x, long incx, real value, real *y, long incy);
+void th_pow_real(long sz, real value, real *x, long incx, real *y, long incy);
 
 void th_copy_real_byte(long sz, byte *x, long incx, real *y, long incy);
 void th_copy_real_char(long sz, char *x, long incx, real *y, long incy);
@@ -71,8 +71,9 @@ void th_manualseed(unsigned long the_seed_);
 unsigned long th_initialseed();
 void th_nextstate();
 unsigned long th_random();
-]], 'real', ctype))
-
+]], 'real', ctype)
+   ffi.cdef(defs)
+end
 
 local clibpath = findclib()
 

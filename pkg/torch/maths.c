@@ -13,7 +13,7 @@ void th_zero_real(long sz, real *x, long inc)
   }
 }
 
-void th_fill_real(long sz, real *x, long inc, real value)
+void th_fill_real(long sz, real value, real *x, long inc)
 {
   long i;
 
@@ -124,7 +124,7 @@ void th_cumprod_real(long sz, real *x, long incx, real *cumprod, long inccumprod
   }
 }
 
-real th_norm_real(long sz, real *x, long incx, real n, int dopow)
+real th_norm_real(long sz, real n, int dopow, real *x, long incx)
 {
   long i;
   accreal sum = 0;
@@ -153,7 +153,7 @@ real th_norm_real(long sz, real *x, long incx, real n, int dopow)
     return (real)sum;
 }
 
-void th_add_real(long sz, real *x, long incx, real value, real *y, long incy)
+void th_add_real(long sz, real value, real *x, long incx, real *y, long incy)
 {
   long i;
   for(i = 0; i < sz; i++)
@@ -181,7 +181,7 @@ void th_cmul_real(long sz, real *x, long incx, real *y, long incy, real *z, long
     z[i*incz] = x[i*incx] * y[i*incy];
 }
 
-void th_div_real(long sz, real *x, long incx, real value, real *y, long incy)
+void th_div_real(long sz, real value, real *x, long incx, real *y, long incy)
 {
   long i;
   for(i = 0; i < sz; i++)
@@ -241,7 +241,7 @@ void th_abs_real(long sz, real *x, long incx, real *y, long incy)
     y[i*incy] = fabs(x[i*incx]);
 }
 
-void th_pow_real(long sz, real *x, long incx, real value, real *y, long incy)
+void th_pow_real(long sz, real value, real *x, long incx, real *y, long incy)
 {
   long i;
   for(i = 0; i < sz; i++)
