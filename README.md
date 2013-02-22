@@ -14,10 +14,10 @@ Installation
 ### Requirements
 
 *   C compiler
-*   (luajit)[http://www.luajit.org]
-*   (cmake)[http://www.cmake.org]
+*   [luajit](http://www.luajit.org)
+*   [cmake](http://www.cmake.org)
 *   git
-*   (luarocks)[http://www.luarocks.org]
+*   [luarocks](http://www.luarocks.org)
 
 ### Getting the last version from the git:
 
