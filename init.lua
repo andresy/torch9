@@ -1,3 +1,5 @@
+print('Torch 9.0  Copyright (C) 2001-2013 Idiap, NEC Labs, NYU')
+
 if not jit then
    error('FATAL: torch9 is luajit *only*')
 end

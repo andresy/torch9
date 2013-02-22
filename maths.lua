@@ -5,8 +5,6 @@ local argcheck = require 'torch.argcheck'
 local torch = require 'torch'
 local C = require 'torch.clib'
 
-print('we loaded real')
-
 local register =
    argcheck{
    
