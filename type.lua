@@ -29,3 +29,9 @@ function torch.istype(obj, typename)
       return typename == tname
    end
 end
+
+-- argcheck uses torch.type()
+local argcheck = require 'argcheck'
+local argcheckenv = getfenv(argcheck)
+argcheckenv.type = torch.type
+argcheckenv.istype = torch.istype

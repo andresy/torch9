@@ -26,13 +26,8 @@ typedef unsigned char byte;
 torch = {}
 package.loaded.torch = torch
 
-local argcheck = require 'torch.argcheck'
 require 'torch.argtypes'
-local argcheckenv = getfenv(argcheck)
-
 require 'torch.type'
-argcheckenv.type = torch.type
-argcheckenv.istype = torch.istype
 
 require 'torch.class'
 

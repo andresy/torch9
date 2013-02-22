@@ -1,6 +1,6 @@
-local argcheck = require 'torch.argcheck'
+local argcheck = require 'argcheck'
 
-ffi = require 'ffi'
+local ffi = require 'ffi'
 
 ffi.cdef[[
  int snprintf(char *restrict s, size_t n, const char *restrict format, ...);

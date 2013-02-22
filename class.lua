@@ -1,5 +1,5 @@
 local torch = require 'torch'
-local argcheck = require 'torch.argcheck'
+local argcheck = require 'argcheck'
 
 local classes = {}
 

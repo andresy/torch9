@@ -1,6 +1,6 @@
-local argcheck = require 'torch.argcheck'
+local argcheck = require 'argcheck'
 
-ffi = require 'ffi'
+local ffi = require 'ffi'
 
 ffi.cdef[[
       typedef struct FILE FILE;

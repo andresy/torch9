@@ -1,6 +1,6 @@
 local torch = require 'torch'
 local ffi = require 'ffi'
-local argcheck = require 'torch.argcheck'
+local argcheck = require 'argcheck'
 local C = require 'torch.clib'
 
 torch.random = argcheck(

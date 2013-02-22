@@ -1,4 +1,4 @@
-local argcheck = require 'torch.argcheck'
+local argcheck = require 'argcheck'
 local ffi = require 'ffi'
 
 local iotypes = {
