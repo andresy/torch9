@@ -490,7 +490,7 @@ function Tensor:__index(k)
       assert(self.__nDimension >= 1 and k > 0 and k <= self.__size[0], 'out of bounds')
       if self.__nDimension == 1 then
          k = k - 1
-         return self.__storage.__data[k*self.__stride[0]+self.__storageOffset]
+         return tonumber( self.__storage.__data[k*self.__stride[0]+self.__storageOffset] )
       else
          return self:select(1, k)
       end
