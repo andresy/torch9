@@ -14,15 +14,14 @@ MACRO(ADD_TORCH_TEMPLATE filename)
 
   ADD_CUSTOM_COMMAND(
     OUTPUT ${tpl_${ARGV2}_${filename}_files}
-    COMMAND ${Torch_SOURCE_LUA} ARGS
+    COMMAND ${LUA_EXECUTABLE} ARGS
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/template.lua"
     "${CMAKE_CURRENT_SOURCE_DIR}/${filename}"
     "${CMAKE_CURRENT_BINARY_DIR}/${filename}"
     "${ARGV2}"
     DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/${filename}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/template.lua"
-    ${Torch_SOURCE_LUA})
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/template.lua")
 
   SET_PROPERTY(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/${_file}_byte${_ext}" PROPERTY COMPILE_DEFINITIONS REAL_IS_BYTE byte=unsigned\ char)
   SET_PROPERTY(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/${_file}_char${_ext}" PROPERTY COMPILE_DEFINITIONS REAL_IS_CHAR byte=unsigned\ char)
