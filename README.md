@@ -28,7 +28,7 @@ Installation
 luarocks build https://raw.github.com/andresy/argcheck/master/rocks/argcheck-scm-1.rockspec
 
 # now get torch
-luarocks build https://github.com/andresy/torch9/blob/master/rocks/torch-9.scm-1.rockspec
+luarocks build https://raw.github.com/andresy/torch9/master/rocks/torch-9.scm-1.rockspec
 ```
 
 Running
