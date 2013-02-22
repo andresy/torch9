@@ -29,14 +29,14 @@ for i=1,#types do
       txt = txt:gsub('([%p%s])Tensor([%p%s])', '%1' .. Real .. 'Tensor' .. '%2')
    end
 
-   local dst = dst:gsub('(%..-)$', '_' .. real .. '%1')
+   local dst = dst:gsub('(%.[^%.]+)$', '_' .. real .. '%1')
    assert(dst ~= src, 'source and destination are same')
    local f = io.open(dst, 'w')
    f:write(txt)
    f:close()
 end   
 
-local basename, ext = dst:match('([^/\\]+)(%..-)$')
+local basename, ext = dst:match('([^/\\]+)(%.[^%.]+)$')
 if not basename or not ext then
    error('could not determine destination file basename/extension')
 end
