@@ -1,3 +1,17 @@
+if not jit then
+   error('FATAL: torch9 is luajit *only*')
+end
+
+if jit.os == 'OSX' then
+   local cpath = package.cpath
+   for path in package.cpath:gmatch('[^;]+') do
+      if path:match('%.so$') then
+         cpath = cpath .. ';' .. path:gsub('%.so$', '.dylib')
+      end
+   end
+   package.cpath = cpath
+end
+
 local ffi = require 'ffi'
 
 ffi.cdef[[
