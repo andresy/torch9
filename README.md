@@ -1,10 +1,12 @@
-Torch9 Library.
+Torch9 Core Library.
 ===============
 
 Torch9 provides a Matlab-like environment for state-of-the-art machine
 learning algorithms. It is easy to use and provides a very efficient
 implementation, thanks to an easy and fast scripting language (Luajit) and
 few C code lines for critical inner loops.
+
+This package provides the core of the Torch9 distribution.
 
 Note: Torch9 is still beta.
 
@@ -22,7 +24,11 @@ Installation
 ### Getting the last version from the git:
 
 ```sh
-luarocks build https://raw.github.com/andresy/torch9/master/rocks/torch-git-0.rockspec
+# first get the argcheck dependency
+luarocks build https://raw.github.com/andresy/argcheck/master/rocks/argcheck-scm-1.rockspec
+
+# now get torch
+luarocks build https://github.com/andresy/torch9/blob/master/rocks/torch-9.scm-1.rockspec
 ```
 
 Running
