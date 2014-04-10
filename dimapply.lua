@@ -1,4 +1,4 @@
-local torch = require 'torch'
+local torch = require 'torch.env'
 
 -- narg: #of input tensors
 -- dim: #of dim of the input tensors

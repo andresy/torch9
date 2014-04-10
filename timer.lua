@@ -1,4 +1,5 @@
-local torch = require 'torch'
+local torch = require 'torch.env'
+local class = require 'class'
 local ffi = require 'ffi'
 
 if jit.os == 'OSX' then
@@ -49,7 +50,8 @@ int getrusage(int who, struct rusage *r_usage);
 
 ]])
 
-local Timer = torch.class('torch.Timer')
+local Timer = class('torch.Timer')
+torch.Timer = Timer
 
 Timer.RUSAGE_SELF = 0
 Timer.RUSAGE_CHILDREN = -1
@@ -112,5 +114,3 @@ function Timer:time()
      sys  = self.__isRunning and (self.__totalsystime + Timer.sys() - self.__startsystime) or self.__totalsystime
   }
 end
-
-torch.Timer = torch.constructor(Timer)

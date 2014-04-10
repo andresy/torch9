@@ -18,7 +18,8 @@ description = {
 
 dependencies = {
    "lua >= 5.1",
-   "argcheck >= 1.0"
+   "argcheck >= 1",
+   "class >= 1"
 }
 
 build = {

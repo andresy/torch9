@@ -1,14 +1,3 @@
-local function findclib()
-   for path in string.gmatch(package.cpath, '[^%;]+') do
-      path = path:gsub('%?', 'libtorch')
-      local f = io.open(path)
-      if f then
-         f:close()
-         return path
-      end
-   end
-end
-
 local ffi = require 'ffi'
 
 for _, ctype in ipairs{'byte', 'char', 'short', 'int', 'long', 'float', 'double'} do
@@ -75,7 +64,7 @@ unsigned long th_random();
    ffi.cdef(defs)
 end
 
-local clibpath = findclib()
+local clibpath = package.searchpath('libtorch', package.cpath)
 
 assert(clibpath, 'torch C library not found')
 

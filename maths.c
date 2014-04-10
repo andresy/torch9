@@ -1,5 +1,28 @@
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct TH_Storage
+{
+   real *__data;
+   long __size;
+   int __refcount;
+   char __flag;
+
+} TH_Storage;
+
+
+void TH_Storage_gc(TH_Storage *self)
+{
+  self->__refcount = self->__refcount - 1;
+  if(self->__refcount == 0)
+  {
+    if(self->__data)
+      free(self->__data);
+    free(self);
+  }
+}
 
 void th_zero_real(long sz, real *x, long inc)
 {

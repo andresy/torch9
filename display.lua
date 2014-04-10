@@ -1,11 +1,13 @@
-local torch = require 'torch'
+local torch = require 'torch.env'
+local class = require 'class'
+
 local display = {}
 
 local function storageformat(self)
    local intMode = true
    local expMin =  math.huge
    local expMax = -math.huge
-   local type = torch.type(self)
+   local type = class.type(self)
    for i=1,self:size() do
       local z = tonumber(self[i])
       if z ~= math.ceil(z) then
@@ -76,7 +78,7 @@ function display.storage(self)
          table.insert(strt, string.format(format, self[i]))
       end
    end
-   table.insert(strt, string.format('[%s of size %d]\n',  torch.type(self), self:size()))
+   table.insert(strt, string.format('[%s of size %d]\n',  class.type(self), self:size()))
    local str = table.concat(strt)
    return str
 end
@@ -171,7 +173,7 @@ function display.tensor(self)
    local str = '\n'
    local strt = {''}
    if self:nDimension() == 0 then
-      table.insert(strt, string.format('[%s with no dimension]\n', torch.type(self)))
+      table.insert(strt, string.format('[%s with no dimension]\n', class.type(self)))
    else
       if self:nDimension() == 1 then
          local format,scale,sz = storageformat(self:storage())
@@ -187,13 +189,13 @@ function display.tensor(self)
                table.insert(strt, string.format(format, self[i]))
             end
          end
-         table.insert(strt, string.format('[%s of dimension %d]\n', torch.type(self), self:size(1)))
+         table.insert(strt, string.format('[%s of dimension %d]\n', class.type(self), self:size(1)))
       elseif self:nDimension() == 2 then
          table.insert(strt, displaymatrix(self))
-         table.insert(strt, string.format('[%s of dimension %dx%d]\n', torch.type(self), self:size(1), self:size(2)))
+         table.insert(strt, string.format('[%s of dimension %dx%d]\n', class.type(self), self:size(1), self:size(2)))
       else
          table.insert(strt, displaytensor(self))
-         table.insert(strt, string.format('[%s of dimension ', torch.type(self)))
+         table.insert(strt, string.format('[%s of dimension ', class.type(self)))
          for i=1,self:nDimension() do
             table.insert(strt, self:size(i))
             if i ~= self:nDimension() then

@@ -1,17 +1,5 @@
-print('Torch 9.0 -- Copyright (C) 2001-2013 Idiap, NEC Labs, NYU. http://www.torch.ch/')
-
 if not jit then
    error('FATAL: torch9 is luajit *only*')
-end
-
-if jit.os == 'OSX' then
-   local cpath = package.cpath
-   for path in package.cpath:gmatch('[^;]+') do
-      if path:match('%.so$') then
-         cpath = cpath .. ';' .. path:gsub('%.so$', '.dylib')
-      end
-   end
-   package.cpath = cpath
 end
 
 local ffi = require 'ffi'
@@ -22,14 +10,6 @@ void *malloc(size_t size);
 void *realloc(void *ptr, size_t size);
 typedef unsigned char byte;
 ]]
-
-torch = {}
-package.loaded.torch = torch
-
-require 'torch.argtypes'
-require 'torch.type'
-
-require 'torch.class'
 
 require 'torch.timer'
 
@@ -46,6 +26,8 @@ require 'torch.diskfile'
 require 'torch.memoryfile'
 
 require 'torch.serialization'
+
+local torch = require 'torch.env'
 
 torch.Tensor = torch.DoubleTensor
 

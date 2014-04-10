@@ -1,36 +1,26 @@
 local ffi = require 'ffi'
-local namedispatch = require 'torch.namedispatch'
-local dispatch = require 'torch.dispatch'
 local argcheck = require 'argcheck'
-local torch = require 'torch'
+local torch = require 'torch.env'
+local class = require 'class'
 local C = require 'torch.clib'
+local register_ = require 'torch.register'
 
-local register =
-   argcheck{
-   
-   {{name="name", type="string"},
-    {name="args", type="table"},
-    {name="dispatchidx", type="number", default=1},
-    {name="dispatchfunc", type="function", opt=true}},
-   
-   function (name, args, dispatchidx, dispatchfunc)
-      local func, method = argcheck(args)
-      torch[name] = torch[name] or (
-         dispatchfunc and dispatch(dispatchfunc) or dispatch(dispatchidx)
-      )
-      dispatch(torch[name], "torch.Tensor", func)
-      torch.Tensor[name] = method
-   end
-}
+local function register(args)
+   return register_(args, torch, class.metatable('torch.Tensor'))
+end
 
-register(
-   "fill",
-   {
-      {
-         {name="dst", type="torch.Tensor"},
-         {name="value", type="number"},
-         self="dst"
-      },
+-- numbers: we could emulate it (right now it is done by hand)
+
+-- DEBUG: Real would save this one
+local function defaulttensortype()
+   return class.type(torch.Tensor)
+end
+
+register{
+   name = "fill",
+   {name="dst", type="torch.Tensor"},
+   {name="value", type="number"},
+   call =
       function(dst, value)
          torch.apply(dst,
                      function(sz, dst, inc)
@@ -38,31 +28,23 @@ register(
                      end)
          return dst
       end
-   }
-)
+}
 
-register(
-   "zero",
-   {
-      {
-         {name="dst", type="torch.Tensor"},
-         self="dst"
-      },
+register{
+   name = "zero",
+   {name="dst", type="torch.Tensor"},
+   call =
       function(dst)
          torch.apply(dst, C.th_zero_real)
          return dst
       end
-   }
-)
+}
 
-register(
-   "dot",
-   {
-      {
-         {name="src1", type="torch.Tensor"},
-         {name="src2", type="torch.Tensor"},
-         self="src1"
-      },
+register{
+   name = "dot",
+   {name="src1", type="torch.Tensor"},
+   {name="src2", type="torch.Tensor"},
+   call =
       function(src1, src2)
          local sum = 0
          torch.apply2(src1, src2,
@@ -71,16 +53,12 @@ register(
                       end)
          return sum
       end
-   }
-)
+}
 
-register(
-   "min",
-   {
-      {
-         {name="src", type="torch.Tensor"},
-         self="src"
-      },
+register{
+   name = "min",
+   {name="src", type="torch.Tensor"},
+   call =
       function(src)
          local min = math.huge
          local minptr = ffi.new('real[1]')
@@ -91,15 +69,16 @@ register(
                         min = math.min(min, minptr[0])
                      end)
          return min
-      end,
-      
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="idx", type="torch.LongTensor", opt=true},
-         {name="src", type="torch.Tensor", method={opt=true}},
-         {name="dim", type="number"},
-         self="dst"
-      },
+      end
+}
+
+register{
+   name = "min",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="idx", type="torch.LongTensor", opt=true},
+   {name="src", type="torch.Tensor", method={opt=true}},
+   {name="dim", type="number"},
+   call =
       function(dst, idx, src, dim)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -117,16 +96,12 @@ register(
                          end)
          return res, idx
       end
-   }
-)
+}
 
-register(
-   "max",
-   {
-      {
-         {name="src", type="torch.Tensor"},
-         self="src"
-      },
+register{
+   name = "max",
+   {name="src", type="torch.Tensor"},
+   call =
       function(src)
          local max = -math.huge
          local maxptr = ffi.new('real[1]')
@@ -137,15 +112,16 @@ register(
                         max = math.max(max, maxptr[0])
                      end)
          return max
-      end,
-      
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="idx", type="torch.LongTensor", opt=true},
-         {name="src", type="torch.Tensor", method={opt=true}},
-         {name="dim", type="number"},
-         self="dst"
-      },
+      end
+}
+
+register{
+   name = "max",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="idx", type="torch.LongTensor", opt=true},
+   {name="src", type="torch.Tensor", method={opt=true}},
+   {name="dim", type="number"},
+   call =
       function(dst, idx, src, dim)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -163,30 +139,28 @@ register(
                          end)
          return res, idx
       end
-   }
-)
+}
 
-register(
-   "sum",
-   {
-      {
-         {name="src", type="torch.Tensor"},
-         self="src"
-      },
+register{
+   name = "sum",
+   {name="src", type="torch.Tensor"},
+   call =
       function(src)
          local sum = 0
-         torch.apply(src, function(sz, src, inc)
-                             sum = sum + C.th_sum_real(sz, src, inc)
-                          end)
+         torch.apply(src,
+                     function(sz, src, inc)
+                        sum = sum + C.th_sum_real(sz, src, inc)
+                     end)
          return sum
-      end,
-      
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="src", type="torch.Tensor", method={opt=true}},
-         {name="dim", type="number"},
-         self="dst"
-      },
+      end
+}
+
+register{
+   name = "sum",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="src", type="torch.Tensor", method={opt=true}},
+   {name="dim", type="number"},
+   call =
       function(dst, src, dim)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -201,16 +175,12 @@ register(
                          end)
          return res
       end
-   }
-)
+}
 
-register(
-   "prod",
-   {
-      {
-         {name="src", type="torch.Tensor"},
-         self="src"
-      },
+register{
+   name = "prod",
+   {name="src", type="torch.Tensor"},
+   call =
       function(src)
          local prod = (src:nElement() > 0) and 1 or 0
          torch.apply(src,
@@ -218,14 +188,15 @@ register(
                         prod = prod * tonumber( C.th_prod_real(sz, src, inc) )
                      end)
          return prod
-      end,
-      
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="src", type="torch.Tensor", method={opt=true}},
-         {name="dim", type="number"},
-         self="dst"
-      },
+      end
+}
+
+register{
+   name = "prod",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="src", type="torch.Tensor", method={opt=true}},
+   {name="dim", type="number"},
+   call =
       function(dst, src, dim)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -240,18 +211,14 @@ register(
                          end)
          return res
       end
-   }
-)
+}
 
-register(
-   "cumsum",
-   {
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="src", type="torch.Tensor", method={opt=true}},
-         {name="dim", type="number"},
-         self="dst"
-      },
+register{
+   name = "cumsum",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="src", type="torch.Tensor", method={opt=true}},
+   {name="dim", type="number"},
+   call =
       function(dst, src, dim)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -264,18 +231,14 @@ register(
                          end)
          return res
       end
-   }
-)
+}
 
-register(
-   "cumprod",
-   {
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="src", type="torch.Tensor", method={opt=true}},
-         {name="dim", type="number"},
-         self="dst"
-      },
+register{
+   name = "cumprod",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="src", type="torch.Tensor", method={opt=true}},
+   {name="dim", type="number"},
+   call =
       function(dst, src, dim)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -288,19 +251,15 @@ register(
                          end)
          return res
       end
-   }
-)
+}
 
 -- float only
 
-register(
-   "norm",
-   {
-      {
-         {name="src", type="torch.Tensor"},
-         {name="n", type="number", default=2},
-         self="src"
-      },
+register{
+   name = "norm",
+   {name="src", type="torch.Tensor"},
+   {name="n", type="number", default=2},
+   call =
       function(src, n)
          local norm = 0
          torch.apply(src,
@@ -308,15 +267,16 @@ register(
                         norm = norm + C.th_norm_real(sz, n, 0, src, inc)
                      end)
          return math.pow(norm, 1/n)
-      end,
-      
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="src", type="torch.Tensor", method={opt=true}},
-         {name="n", type="number", default=2},
-         {name="dim", type="number"},
-         self="dst"
-      },
+      end
+}
+
+register{
+   name = "norm",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="src", type="torch.Tensor", method={opt=true}},
+   {name="n", type="number", default=2},
+   {name="dim", type="number"},
+   call =
       function(dst, src, n, dim)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -331,29 +291,27 @@ register(
                          end)
          return res
       end
-   }
-)
+}
 
-register(
-   "mean",
-   {
-      {
-         {name="src", type="torch.Tensor"},
-         self="src"
-      },
+register{
+   name = "mean",
+   {name="src", type="torch.Tensor"},
+   call =
       function(src)
          local sum = 0
          torch.apply(src, function(sz, src, inc)
                              sum = sum + C.th_sum_real(sz, src, inc)
                           end)
          return sum / src:nElement()
-      end,
-      
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},  -- could be torch.DoubleTensor for other types
-         {name="src", type="torch.Tensor", method={opt=true}},
-         {name="dim", type="number"}
-      },
+      end
+}
+
+register{
+   name = "mean",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},  -- could be torch.DoubleTensor for other types
+   {name="src", type="torch.Tensor", method={opt=true}},
+   {name="dim", type="number"},
+   call =
       function(dst, src, dim)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -368,17 +326,13 @@ register(
                          end)
          return dst
       end
-   }
-)
+}
 
-register(
-   "std",
-   {
-      {
-         {name="src", type="torch.Tensor"},
-         {name="flag", type="boolean", default=false},
-         self="src"
-      },
+register{
+   name = "std",
+   {name="src", type="torch.Tensor"},
+   {name="flag", type="boolean", default=false},
+   call =
       function(src, flag)
          local sum = 0
          local sum2 = 0
@@ -393,15 +347,16 @@ register(
          else
             return math.sqrt((sum2 - sum*sum/n)/(n-1))
          end
-      end,
+      end
+}
       
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},  -- could be torch.DoubleTensor for other types
-         {name="src", type="torch.Tensor", method={opt=true}},
-         {name="dim", type="number"},
-         {name="flag", type="boolean", default=false},
-         self="dst"
-      },
+register{
+   name = "std",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},  -- could be torch.DoubleTensor for other types
+   {name="src", type="torch.Tensor", method={opt=true}},
+   {name="dim", type="number"},
+   {name="flag", type="boolean", default=false},
+   call =
       function(dst, src, dim, flag)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -428,17 +383,13 @@ register(
          end
          return res
       end
-   }
-)
+}
 
-register(
-   "var",
-   {
-      {
-         {name="src", type="torch.Tensor"},
-         {name="flag", type="boolean", default=false},
-         self="src"
-      },
+register{
+   name = "var",
+   {name="src", type="torch.Tensor"},
+   {name="flag", type="boolean", default=false},
+   call =
       function(src, flag)
          local sum = 0
          local sum2 = 0
@@ -452,15 +403,16 @@ register(
          else
             return (sum2 - sum*sum/n)/(n-1)
          end
-      end,
-      
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},  -- could be torch.DoubleTensor for other types
-         {name="src", type="torch.Tensor", method={opt=true}},
-         {name="dim", type="number"},
-         {name="flag", type="boolean", default=false},
-         self="dst"
-      },
+      end
+}
+
+register{
+   name = "var",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},  -- could be torch.DoubleTensor for other types
+   {name="src", type="torch.Tensor", method={opt=true}},
+   {name="dim", type="number"},
+   {name="flag", type="boolean", default=false},
+   call =
       function(dst, src, dim, flag)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -487,18 +439,14 @@ register(
          end
          return res
       end
-   }
-)
+}
 
-register(
-   "add",
-   {
-      {
-         {name="dst", type="torch.Tensor", opt=true,  method={opt=false}},
-         {name="src", type="torch.Tensor", method={defaulta="self"}},
-         {name="value", type="number"},
-         self="dst"
-      },
+register{
+   name = "add",
+   {name="dst", type="torch.Tensor", opt=true,  method={opt=false}},
+   {name="src", type="torch.Tensor", method={defaulta="self"}},
+   {name="value", type="number"},
+   call =
       function(dst, src, value)
          local res = src and dst or torch.Tensor()
          src = src or self
@@ -509,13 +457,16 @@ register(
                          C.th_add_real(sz, value, src, incsrc, res, incres)
                       end)
          return res
-      end,
+      end
+}
 
-      {{name="dst", type="torch.Tensor", opt=true,   method={opt=false}},
-       {name="src1", type="torch.Tensor", opt=false, method={defaulta="self"}},
-       {name="value", type="number", default=1},
-       {name="src2", type="torch.Tensor"},
-       self="dst"},
+register{
+   name = "add",
+   {name="dst", type="torch.Tensor", opt=true,   method={opt=false}},
+   {name="src1", type="torch.Tensor", opt=false, method={defaulta="self"}},
+   {name="value", type="number", default=1},
+   {name="src2", type="torch.Tensor"},
+   call =
       function(dst, src1, value, src2)
          local res = src1 and dst or torch.Tensor()
          src1 = src1 or dst
@@ -526,18 +477,15 @@ register(
                          C.th_cadd_real(sz, src1, src1st, value, src2, src2st, res, resst)
                       end)
          return res
-      end}
-)
+      end
+}
 
-register(
-   "mul",
-   {
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="src", type="torch.Tensor", method={defaulta="self"}},
-         {name="value", type="number"},
-         self="dst"
-      },
+register{
+   name = "mul",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="src", type="torch.Tensor", method={defaulta="self"}},
+   {name="value", type="number"},
+   call =
       function(dst, src, value)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -549,18 +497,14 @@ register(
                       end)
          return res
       end
-   }
-)
+}
 
-register(
-   "cmul",
-   {
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="src1", type="torch.Tensor", method={defaulta="self"}},
-         {name="src2", type="torch.Tensor"},
-         self="dst"
-      },
+register{
+   name = "cmul",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="src1", type="torch.Tensor", method={defaulta="self"}},
+   {name="src2", type="torch.Tensor"},
+   call =
       function(dst, src1, src2)
          local res = src1 and dst or torch.Tensor()
          src1 = src1 or dst
@@ -569,19 +513,15 @@ register(
          torch.apply3(src1, src2, res, C.th_cmul_real)
          return res
       end
-   }
-)
+}
 
 
-register(
-   "div",
-   {
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="src", type="torch.Tensor", method={defaulta="self"}},
-         {name="value", type="number"},
-         self="dst"
-      },
+register{
+   name = "div",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="src", type="torch.Tensor", method={defaulta="self"}},
+   {name="value", type="number"},
+   call =
       function(dst, src, value)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -593,18 +533,14 @@ register(
                       end)
          return res
       end
-   }
-)
+}
 
-register(
-   "cdiv",
-   {
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="src1", type="torch.Tensor", method={defaulta="self"}},
-         {name="src2", type="torch.Tensor"},
-         self="dst"
-      },
+register{
+   name = "cdiv",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="src1", type="torch.Tensor", method={defaulta="self"}},
+   {name="src2", type="torch.Tensor"},
+   call =
       function(dst, src1, src2)
          local res = src1 and dst or torch.Tensor()
          src1 = src1 or dst
@@ -613,19 +549,15 @@ register(
          torch.apply3(src1, src2, res, C.th_cdiv_real)
          return res
       end
-   }
-)
+}
 
-register(
-   "addcmul",
-   {
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="value", type="number", default=1},
-         {name="src1", type="torch.Tensor", method={defaulta="self"}},
-         {name="src2", type="torch.Tensor"},
-         self="dst"
-      },
+register{
+   name = "addcmul",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="value", type="number", default=1},
+   {name="src1", type="torch.Tensor", method={defaulta="self"}},
+   {name="src2", type="torch.Tensor"},
+   call =
       function(dst, value, src1, src2)
          local res = src1 and dst or torch.Tensor()
          src1 = src1 or dst
@@ -637,19 +569,15 @@ register(
                       end)
          return res
       end
-   }
-)
+}
 
-register(
-   "addcdiv",
-   {
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="value", type="number", default=1},
-         {name="src1", type="torch.Tensor", method={defaulta="self"}},
-         {name="src2", type="torch.Tensor"},
-         self="dst"
-      },
+register{
+   name = "addcdiv",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="value", type="number", default=1},
+   {name="src1", type="torch.Tensor", method={defaulta="self"}},
+   {name="src2", type="torch.Tensor"},
+   call =
       function(dst, value, src1, src2)
          local res = src1 and dst or torch.Tensor()
          src1 = src1 or dst
@@ -661,17 +589,13 @@ register(
                       end)
          return res
       end
-   }
-)
+}
 
-register(
-   "trace",
-   {
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="src", type="torch.Tensor", method={opt=true}},
-         self="dst"
-      },
+register{
+   name = "trace",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="src", type="torch.Tensor", method={opt=true}},
+   call =
       function(dst, src)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -685,21 +609,17 @@ register(
                                  )
                       )
       end
-   }
-)
+}
 
 for _,name in ipairs{'log', 'log1p', 'exp', 'cos', 'acos', 'cosh', 'sin', 'asin',
                      'sinh', 'tan', 'atan', 'tanh', 'sqrt', 'ceil', 'floor', 'abs'} do
 
    local func = C['th_' .. name .. '_real']
-   register(
-      name,
-      {
-         {
-            {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-            {name="src", type="torch.Tensor", method={defaulta="self"}},
-            self="dst"
-         },
+   register{
+      name = name,
+      {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+      {name="src", type="torch.Tensor", method={defaulta="self"}},
+      call =
          function(dst, src)
             local res = src and dst or torch.Tensor()
             src = src or dst
@@ -708,19 +628,15 @@ for _,name in ipairs{'log', 'log1p', 'exp', 'cos', 'acos', 'cosh', 'sin', 'asin'
             torch.apply2(src, res, func)
             return res
          end
-      }
-   )
+   }
 end
 
-register(
-   "pow",
-   {
-      {
-         {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
-         {name="src", type="torch.Tensor", method={defaulta="self"}},
-         {name="value", type="number"},
-         self="dst"
-      },
+register{
+   name = "pow",
+   {name="dst", type="torch.Tensor", opt=true, method={opt=false}},
+   {name="src", type="torch.Tensor", method={defaulta="self"}},
+   {name="value", type="number"},
+   call =
       function(dst, src, value)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -732,55 +648,73 @@ register(
                       end)
          return res
       end
-   }
-)
+}
 
-register(
-   "zeros",
-   {
-      {
-         {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
-         {name="size", type="numbers"},
-         self="dst"
-      },
-      function(dst, size)
-         local res = dst or torch.Tensor()
-         res:resize(size)
-         res:zero()
-         return res
-      end
-   },
-   namedispatch
-)
+local function zeros(dst, size, typename)
+   local res = dst or class.metatable(typename).new()
+   res:resize(size)
+   res:zero()
+   return res
+end
 
-register(
-   "ones",
-   {
-      {
-         {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
-         {name="size", type="numbers"},
-         self="dst"
-      },
-      function(dst, size)
-         local res = dst or torch.Tensor()
-         res:resize(size)
-         res:fill(1)
-         return res
+register{
+   name = "zeros",
+   {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+   {name="size", type="table"},
+   {name="typename", type="string", defaultf=defaulttensortype}, -- namedispatch
+   call = zeros
+}
+
+register{
+   name = "zeros",
+   {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+   {name="dim1", type="number"},
+   {name="dim2", type="number", opt=true},
+   {name="dim3", type="number", opt=true},
+   {name="dim4", type="number", opt=true},
+   {name="typename", type="string", defaultf=defaulttensortype}, -- namedispatch
+   call =
+      function(dst, dim1, dim2, dim3, dim4, typename)
+         return zeros(dst, {dim1, dim2, dim3, dim4}, typename)
       end
-   },
-   namedispatch
-)
+}
+
+local function ones(dst, size, typename)
+   local res = dst or class.metatable(typename).new()
+   res:resize(size)
+   res:fill(1)
+   return res
+end
+
+register{
+   name = "ones",
+   {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+   {name="size", type="table"},
+   {name="typename", type="string",  defaultf=defaulttensortype}, -- namedispatch
+   call = ones
+}
+
+register{
+   name = "ones",
+   {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+   {name="dim1", type="number"},
+   {name="dim2", type="number", opt=true},
+   {name="dim3", type="number", opt=true},
+   {name="dim4", type="number", opt=true},
+   {name="typename", type="string", default=defaulttensortype}, -- namedispatch
+   call =
+      function(dst, dim1, dim2, dim3, dim4, typename)
+         return ones(dst, {dim1, dim2, dim3, dim4}, typename)
+      end
+}
 
 -- arg... a copy, or a view?
-register(
-   "diag",
-   {
-      {
-         {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
-         {name="src", type='torch.Tensor', method={opt=true}},
-         {name="k", type='number', default=0},
-         self="dst"
-      },
+register{
+   name = "diag",
+   {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+   {name="src", type='torch.Tensor', method={opt=true}},
+   {name="k", type='number', default=0},
+   call =
       function(dst, src, k)
          local res = src and dst or torch.Tensor()
          src = src or dst
@@ -810,21 +744,17 @@ register(
          end
          return res
       end
-   }
-)
+}
 
-register(
-   "addmv",
-   {
-      {
-         {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
-         {name="beta", type='number', default=1},
-         {name="src", type='torch.Tensor', method={defaulta="self"}},
-         {name="alpha", type='number', default=1},
-         {name="mat", type='torch.Tensor', dim=2},
-         {name="vec", type='torch.Tensor', dim=1},
-         self="dst"
-      },
+register{
+   name = "addmv",
+   {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+   {name="beta", type='number', default=1},
+   {name="src", type='torch.Tensor', method={defaulta="self"}},
+   {name="alpha", type='number', default=1},
+   {name="mat", type='torch.Tensor', dim=2},
+   {name="vec", type='torch.Tensor', dim=1},
+   call =
       function(dst, beta, src, alpha, mat, vec)
          local res = src and dst or torch.Tensor()
          src = src or self
@@ -866,136 +796,160 @@ register(
 
          return res
       end
-   }
-)
+}
 
-register(
-   "rand",
-   {
-      {
-         {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
-         {name="size", type="numbers"},
-         self="dst"
-      },
-      function(dst, size)
-         local res = dst or torch.Tensor()
-         res:resize(size)
-         torch.apply(res,
-                     function(sz, dst, inc)
-                        for i=0,sz-1 do
-                           dst[i*inc] = torch.random()/2^32
-                        end
-                     end)
-         return res
+local function rand(dst, size, typename)
+   local res = dst or class.metatable(typename).new()
+   res:resize(size)
+   torch.apply(res,
+               function(sz, dst, inc)
+                  for i=0,sz-1 do
+                     dst[i*inc] = torch.random()/2^32
+                  end
+               end)
+   return res
+end
+
+register{
+   name = "rand",
+   {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+   {name="size", type="table"},
+   {name="typename", type="string", defaultf=defaultensortype}, -- namedispatch
+   call = rand
+}
+
+register{
+   name = "rand",
+   {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+   {name="dim1", type="number"},
+   {name="dim2", type="number", opt=true},
+   {name="dim3", type="number", opt=true},
+   {name="dim4", type="number", opt=true},
+   {name="typename", type="string", default=defaulttensortype}, -- namedispatch
+   call =
+      function(dst, dim1, dim2, dim3, dim4, typename)
+         return rand(dst, {dim1, dim2, dim3, dim4}, typename)
       end
-   },
-   namedispatch
-)
+}
 
-register(
-   "randn",
-   {
-      {
-         {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
-         {name="size", type="numbers"},
-         self="dst"
-      },
-      function(dst, size)
-         local res = dst or torch.Tensor()
-         res:resize(size)
-         torch.apply(res,
-                     function(sz, dst, inc)
-                        for i=0,sz-1 do
-                           dst[i*inc] = torch.normal()
-                        end
-                     end)
-         return res
+local function randn(dst, size, typename)
+   local res = dst or class.metatable(typename).new()
+   res:resize(size)
+   torch.apply(res,
+               function(sz, dst, inc)
+                  for i=0,sz-1 do
+                     dst[i*inc] = torch.normal()
+                  end
+               end)
+   return res
+end
+
+register{
+   name = "randn",
+   {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+   {name="size", type="table"},
+   {name="typename", type="string", defaultf=defaultensortype}, -- namedispatch
+   call = randn
+}
+
+register{
+   name = "randn",
+   {name="dst", type='torch.Tensor', opt=true, method={opt=false}},
+   {name="dim1", type="number"},
+   {name="dim2", type="number", opt=true},
+   {name="dim3", type="number", opt=true},
+   {name="dim4", type="number", opt=true},
+   {name="typename", type="string", default=defaulttensortype}, -- namedispatch
+   call =
+      function(dst, dim1, dim2, dim3, dim4, typename)
+         return randn(dst, {dim1, dim2, dim3, dim4}, typename)
       end
-   },
-   namedispatch
-)
+}
 
-register(
-   "copy",
-   {
-      {
-         {name="dst", type='torch.Tensor'},
-         {name="src", type='torch.Tensor'},
-         self="dst"
-      },
+register{
+   name = "copy",
+   {name="dst", type='torch.Tensor'},
+   {name="src", type='torch.Tensor'},
+   call =
       function(dst, src)
          torch.apply2(src, dst,
                       C.th_copy_real_real)
-      end,
+      end
+}
 
-      {
-         {name="dst", type='torch.Tensor'},
-         {name="src", type='torch.ByteTensor'},
-         self="dst"
-      },
+register{
+   name = "copy",
+   {name="dst", type='torch.Tensor'},
+   {name="src", type='torch.ByteTensor'},
+   call =
       function(dst, src)
          torch.apply2(src, dst,
                       C.th_copy_real_byte)
-      end,
+      end
+}
 
-      {
-         {name="dst", type='torch.Tensor'},
-         {name="src", type='torch.CharTensor'},
-         self="dst"
-      },
+register{
+   name = "copy",
+   {name="dst", type='torch.Tensor'},
+   {name="src", type='torch.CharTensor'},
+   call =
       function(dst, src)
          torch.apply2(src, dst,
                       C.th_copy_real_char)
-      end,
+      end
+}
 
-      {
-         {name="dst", type='torch.Tensor'},
-         {name="src", type='torch.ShortTensor'},
-         self="dst"
-      },
+register{
+   name = "copy",
+   {name="dst", type='torch.Tensor'},
+   {name="src", type='torch.ShortTensor'},
+   call =
       function(dst, src)
          torch.apply2(src, dst,
                       C.th_copy_real_short)
-      end,
+      end
+}
 
-      {
-         {name="dst", type='torch.Tensor'},
-         {name="src", type='torch.IntTensor'},
-         self="dst"
-      },
+register{
+   name = "copy",
+   {name="dst", type='torch.Tensor'},
+   {name="src", type='torch.IntTensor'},
+   call =
       function(dst, src)
          torch.apply2(src, dst,
                       C.th_copy_real_int)
-      end,
+      end
+}
 
-      {
-         {name="dst", type='torch.Tensor'},
-         {name="src", type='torch.LongTensor'},
-         self="dst"
-      },
+register{
+   name = "copy",
+   {name="dst", type='torch.Tensor'},
+   {name="src", type='torch.LongTensor'},
+   call =
       function(dst, src)
          torch.apply2(src, dst,
                       C.th_copy_real_long)
-      end,
+      end
+}
 
-      {
-         {name="dst", type='torch.Tensor'},
-         {name="src", type='torch.FloatTensor'},
-         self="dst"
-      },
+register{
+   name = "copy",
+   {name="dst", type='torch.Tensor'},
+   {name="src", type='torch.FloatTensor'},
+   call =
       function(dst, src)
          torch.apply2(src, dst,
                       C.th_copy_real_float)
-      end,
+      end
+}
 
-      {
-         {name="dst", type='torch.Tensor'},
-         {name="src", type='torch.DoubleTensor'},
-         self="dst"
-      },
+register{
+   name = "copy",
+   {name="dst", type='torch.Tensor'},
+   {name="src", type='torch.DoubleTensor'},
+   call =
       function(dst, src)
          torch.apply2(src, dst,
                       C.th_copy_real_double)
       end
-   }
-)
+}

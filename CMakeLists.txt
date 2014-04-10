@@ -4,9 +4,9 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 INCLUDE(TorchTemplate)
 
-SET(luasrc init.lua type.lua class.lua argtypes.lua timer.lua
-apply.lua dimapply.lua display.lua dispatch.lua namedispatch.lua random.lua
-file.lua diskfile.lua memoryfile.lua serialization.lua clib.lua)
+SET(luasrc env.lua init.lua register.lua timer.lua apply.lua dimapply.lua
+display.lua random.lua file.lua diskfile.lua memoryfile.lua
+serialization.lua clib.lua)
 
 SET(mathcfiles random.c)
 
@@ -17,7 +17,7 @@ ADD_TORCH_TEMPLATE("storage.lua" luasrc "torch")
 ADD_TORCH_TEMPLATE("tensor.lua" luasrc "torch")
 ADD_TORCH_TEMPLATE("maths.lua" luasrc "torch")
 
-ADD_LIBRARY(torch SHARED ${mathcfiles})
+ADD_LIBRARY(torch MODULE ${mathcfiles})
 
 FIND_PACKAGE(BLAS)
 IF(BLAS_FOUND)

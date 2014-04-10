@@ -1,4 +1,4 @@
-local torch = require 'torch'
+local torch = require 'torch.env'
 
 local function generate_apply(dim)
    local func = {}

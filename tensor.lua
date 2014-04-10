@@ -1,11 +1,12 @@
-local torch = require 'torch'
-local argcheck = require 'argcheck'
 local display = require 'torch.display'
+local argcheck = require 'argcheck'
+local torch = require 'torch.env'
+local class = require 'class'
 local ffi = require 'ffi'
+local C = require 'torch.clib'
 
-local Tensor = torch.class('torch.Tensor')
-
-Tensor.__version = 2
+local Tensor = class('torch.Tensor')
+torch.Tensor = Tensor
 
 local longvlact = ffi.typeof('long[?]')
 
@@ -18,8 +19,8 @@ local function carray2table(arr, size)
 end
 
 local function rawInit(self)
-   self.__storageOffset = 0
    self.__nDimension = 0
+   self.__storageOffset = 0
    self.__flag = 0
    return self
 end
@@ -74,7 +75,7 @@ local function rawResize(self, nDimension, size, stride)
       end
       
       if totalSize+self.__storageOffset > 0 then
-         if not self.__storage then
+         if self.__storage == nil then
             self.__storage = torch.Storage()
          end
          if totalSize+self.__storageOffset > self.__storage.__size then
@@ -89,7 +90,7 @@ end
 local function rawSet(self, storage, storageOffset, nDimension, size, stride)
    -- storage
    self.__storage = storage
-   
+
    -- storageOffset
    assert(storageOffset >= 0, "Tensor: invalid storage offset")
    self.__storageOffset = storageOffset
@@ -100,14 +101,16 @@ end
 
 -- access methods
 Tensor.storage = argcheck{
-   {{name='self', type='torch.Tensor'}},
-   function(self)
-      return self.__storage
-   end
+   {name='self', type='torch.Tensor'},
+   call =
+      function(self)
+         return self.__storage
+      end
 }
 
 Tensor.storageOffset= argcheck{
-   {{name='self', type='torch.Tensor'}},
+   {name='self', type='torch.Tensor'},
+   call =
    function(self)
       return self.__storageOffset
    end
@@ -115,7 +118,8 @@ Tensor.storageOffset= argcheck{
 Tensor.offset = Tensor.storageOffset
 
 Tensor.nDimension= argcheck{
-   {{name='self', type='torch.Tensor'}},
+   {name='self', type='torch.Tensor'},
+   call =
    function(self)
       return self.__nDimension
    end
@@ -123,8 +127,9 @@ Tensor.nDimension= argcheck{
 Tensor.dim = Tensor.nDimension
 
 Tensor.size = argcheck{
-   {{name='self', type='torch.Tensor'},
-    {name='dim', type='number', opt=true}},
+   {name='self', type='torch.Tensor'},
+   {name='dim', type='number', opt=true},
+   call =
    function(self, dim)
       if dim then
          assert(dim > 0 and dim <= self.__nDimension, 'out of range')
@@ -137,8 +142,9 @@ Tensor.size = argcheck{
 
 
 Tensor.stride = argcheck{
-   {{name='self', type='torch.Tensor'},
-    {name='dim', type='number', opt=true}},
+   {name='self', type='torch.Tensor'},
+   {name='dim', type='number', opt=true},
+   call =
    function(self, dim)
       if dim then
          assert(dim > 0 and dim <= self.__nDimension, 'out of range')
@@ -150,7 +156,8 @@ Tensor.stride = argcheck{
 }
 
 Tensor.data = argcheck{
-   {{name='self', type='torch.Tensor'}},
+   {name='self', type='torch.Tensor'},
+   call =
    function(self)
       if self.__storage then
          return self.__storage.__data+self.__storageOffset
@@ -159,8 +166,9 @@ Tensor.data = argcheck{
 }
 
 Tensor.setFlag = argcheck{
-   {{name='self', type='torch.Tensor'},
-    {name='flag', type='number'}},
+   {name='self', type='torch.Tensor'},
+   {name='flag', type='number'},
+   call =
    function(self, flag)
       self.__flag = bit.bor(self.__flag, flag)
       return self
@@ -168,8 +176,9 @@ Tensor.setFlag = argcheck{
 }
 
 Tensor.clearFlag = argcheck{
-   {{name='self', type='torch.Tensor'},
-    {name='flag', type='number'}},
+   {name='self', type='torch.Tensor'},
+    {name='flag', type='number'},
+    call =
    function(self, flag)
       self.__flag = bit.band(self.__flag, bit.bnot(flag))
       return self
@@ -199,36 +208,62 @@ local function new(self, storage, storageOffset, size, stride)
 end
 
 Tensor.__init = argcheck{
-   {{name='self', type='torch.Tensor'}},
-   new,
+   {name='self', type='torch.Tensor'},
+   call = new
+}
 
-   {{name='self', type='torch.Tensor'},
-    {name='storage', type='torch.Storage'},
-    {name='storageOffset', type='number', default=0},
-    {name='size', type='numbers', vararg=false, opt=true},
-    {name='stride', type='numbers', vararg=false, opt=true}},
-   new,
+argcheck{
+   {name='self', type='torch.Tensor'},
+   {name='storage', type='torch.Storage'},
+   {name='storageOffset', type='number', default=0},
+   {name='size', type='table', check=checknumbers, opt=true},
+   {name='stride', type='table',  check=checknumbers, opt=true},
+   chain = Tensor.__init,
+   call = new
+}
 
-   {{name='self', type='torch.Tensor'},
-    {name='size', type='numbers'}}, -- lower priority than the data init
+argcheck{
+   {name='self', type='torch.Tensor'},
+   {name='dim1', type='number'},
+   {name='dim2', type='number', opt=true},
+   {name='dim3', type='number', opt=true},
+   {name='dim4', type='number', opt=true},
+   chain = Tensor.__init,
+   call =
+      function(self, dim1, dim2, dim3, dim4)
+         local size = {dim1, dim2, dim3, dim4}
+         return new(self, nil, nil, size, nil)
+      end
+}
+
+argcheck{
+   {name='self', type='torch.Tensor'},
+   {name='size', type='table', check=checknumbers}, -- lower priority than the data init
+   chain = Tensor.__init,
+   call =
    function(self, size)
       return new(self, nil, nil, size, nil)
-   end,
-
-   {{name='self', type='torch.Tensor'},
-    {name='tensor', type='torch.Tensor'}},
-   function(self, tensor)
-      return new(self,
-                 tensor.__storage,
-                 tensor.__storageOffset,
-                 carray2table(tensor.__size, tensor.__nDimension),
-                 carray2table(tensor.__stride, tensor.__nDimension))
    end
 }
 
+argcheck{
+   {name='self', type='torch.Tensor'},
+   {name='tensor', type='torch.Tensor'},
+   chain = Tensor.__init,
+   call =
+      function(self, tensor)
+         return new(self,
+                    tensor.__storage,
+                    tensor.__storageOffset,
+                    carray2table(tensor.__size, tensor.__nDimension),
+                    carray2table(tensor.__stride, tensor.__nDimension))
+      end
+}
+
 Tensor.set = argcheck{
-   {{name='self', type='torch.Tensor'},
-    {name='src', type='torch.Tensor'}},
+   {name='self', type='torch.Tensor'},
+    {name='src', type='torch.Tensor'},
+    call =
    function(self, src)
       if self ~= src then
          rawSet(self,
@@ -243,26 +278,36 @@ Tensor.set = argcheck{
 }
 
 Tensor.resize = argcheck{
-   {{name='self', type='torch.Tensor'},
-    {name='size', type='numbers', vararg=false},
-    {name='stride', type='numbers', vararg=false}},
-   function(self, size, stride)
-      local dim = #size
-      assert(not stride or (#stride == dim), 'inconsistent size/stride sizes')
-      rawResize(self, dim, longvlact(dim, size), stride and longvlact(dim, stride))
-   end,
+   {name='self', type='torch.Tensor'},
+   {name='size', type='table', check=checknumbers},
+   {name='stride', type='table', check=checknumbers, opt=true},
+   call =
+      function(self, size, stride)
+         local dim = #size
+         assert(not stride or (#stride == dim), 'inconsistent size/stride sizes')
+         rawResize(self, dim, longvlact(dim, size), stride and longvlact(dim, stride))
+      end
+}
 
-   {{name='self', type='torch.Tensor'},
-    {name='size', type='numbers'}},
-   function(self, size)
-      local dim = #size
-      rawResize(self, dim, longvlact(dim, size))
+argcheck{
+   {name='self', type='torch.Tensor'},
+   {name='dim1', type='number'},
+   {name='dim2', type='number', opt=true},
+   {name='dim3', type='number', opt=true},
+   {name='dim4', type='number', opt=true},
+   chain = Tensor.resize,
+   call =
+   function(self, dim1, dim2, dim3, dim4)
+         local size = {dim1, dim2, dim3, dim4}
+         local dim = #size
+         rawResize(self, dim, longvlact(dim, size))
    end
 }
 
 Tensor.resizeAs = argcheck{
-   {{name='self', type='torch.Tensor'},
-    {name='src', type='torch.Tensor'}},
+   {name='self', type='torch.Tensor'},
+   {name='src', type='torch.Tensor'},
+   call =
    function(self, src)
       rawResize(self, src.__nDimension, src.__size, nil)
       return self
@@ -270,11 +315,12 @@ Tensor.resizeAs = argcheck{
 }
 
 Tensor.narrow = argcheck{
-   {{name='self', type='torch.Tensor'},
-    {name='src', type='torch.Tensor', opt=true},
-    {name='dim', type='number'},
-    {name='idx', type='number'},
-    {name='size', type='number'}},
+   {name='self', type='torch.Tensor'},
+   {name='src', type='torch.Tensor', opt=true},
+   {name='dim', type='number'},
+   {name='idx', type='number'},
+   {name='size', type='number'},
+   call =
    function(self, src, dim, idx, size)
       local dst = src and self or torch.Tensor()
       src = src or self
@@ -297,10 +343,11 @@ Tensor.narrow = argcheck{
 }
 
 Tensor.select = argcheck{
-   {{name='self', type='torch.Tensor'},
+   {name='self', type='torch.Tensor'},
     {name='src', type='torch.Tensor', opt=true},
     {name='dim', type='number'},
-    {name='idx', type='number'}},
+    {name='idx', type='number'},
+    call =
    function(self, src, dim, idx)
       local dst = src and self or torch.Tensor()
       src = src or self
@@ -326,10 +373,11 @@ Tensor.select = argcheck{
 }
 
 Tensor.transpose = argcheck{
-   {{name='self', type='torch.Tensor'},
+   {name='self', type='torch.Tensor'},
     {name='src', type='torch.Tensor', opt=true},
     {name='dim1', type='number'},
-    {name='dim2', type='number'}},
+    {name='dim2', type='number'},
+    call =
    function(self, src, dim1, dim2)
       local dst = src and self or torch.Tensor()
       src = src or self
@@ -356,11 +404,12 @@ Tensor.transpose = argcheck{
 }
 
 Tensor.unfold = argcheck{
-   {{name='self', type='torch.Tensor'},
+   {name='self', type='torch.Tensor'},
     {name='src', type='torch.Tensor', opt=true},
     {name='dim', type='number'},
     {name='size', type='number'},
-    {name='step', type='number'}},
+    {name='step', type='number'},
+    call =
    function(self, src, dim, size, step)
       local dst = src and self or torch.Tensor()
       src = src or self
@@ -396,8 +445,9 @@ Tensor.unfold = argcheck{
 }
 
 Tensor.squeeze = argcheck{
-   {{name='self', type='torch.Tensor'},
-    {name='src', type='torch.Tensor', opt=true}},
+   {name='self', type='torch.Tensor'},
+    {name='src', type='torch.Tensor', opt=true},
+    call =
    function(self, src)
       local dst = src and self or torch.Tensor()
       src = src or self
@@ -430,9 +480,10 @@ Tensor.squeeze = argcheck{
 }
 
 Tensor.squeeze1d = argcheck{
-   {{name='self', type='torch.Tensor'},
+   {name='self', type='torch.Tensor'},
     {name='src', type='torch.Tensor', opt=true},
-    {name='dim', type='number'}},
+    {name='dim', type='number'},
+    call =
    function(self, src, dim)
       local dst = src and self or torch.Tensor()
       src = src or self
@@ -454,7 +505,8 @@ Tensor.squeeze1d = argcheck{
 }
 
 Tensor.isContiguous = argcheck{
-   {{name='self', type='torch.Tensor'}},
+   {name='self', type='torch.Tensor'},
+   call =
    function(self)
       local z = 1
       for d=self.__nDimension-1,0,-1 do
@@ -471,7 +523,8 @@ Tensor.isContiguous = argcheck{
 }
 
 Tensor.nElement = argcheck{
-   {{name='self', type='torch.Tensor'}},
+   {name='self', type='torch.Tensor'},
+   call =
    function(self)
       if self.__nDimension == 0 then
          return 0
@@ -521,5 +574,3 @@ function Tensor:read(file, version)
    end
    self.__storage = file:readObject()
 end
-
-torch.Tensor = torch.constructor(Tensor)

@@ -1,5 +1,6 @@
-local torch = require 'torch'
-local File = torch.metatable('torch.File')
+local torch = require 'torch.env'
+local class = require 'class'
+local File = class.metatable('torch.File')
 
 function File:writeBool(value)
    if value then
@@ -22,7 +23,7 @@ local TYPE_BOOLEAN  = 5
 local TYPE_FUNCTION = 6
 
 function File:isWritableObject(object)
-   local typename = torch.type(object)
+   local typename = class.type(object)
    local typeidx
    if type(object) ~= 'boolean' and not object then
       typeidx = TYPE_NIL
@@ -102,7 +103,7 @@ function File:writeObject(object, force)
             local version = 'V ' .. object.__version
             self:writeInt(#version) -- backward compat
             self:write(version .. '\n')
-            local className = torch.type(object)
+            local className = class.type(object)
             self:writeInt(#className)  -- backward compat
             self:write(className .. '\n')
             if object.write then

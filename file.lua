@@ -1,4 +1,6 @@
 local argcheck = require 'argcheck'
+local torch = require 'torch.env'
+local class = require 'class'
 local ffi = require 'ffi'
 
 local iotypes = {
@@ -57,167 +59,180 @@ for ioluatype, iotype in pairs(iotypes) do
 end
 
 
-local File = torch.class('torch.File')
+local File = class('torch.File')
+torch.File = File
 
 -- should initialize basic variables (__isBinary, __isAutoSpacing... here in a basic constructor)
 
-File.isQuiet =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      return self.__isQuiet
-   end
-)
+File.isQuiet = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         return self.__isQuiet
+      end
+}
 
-File.isReadable =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      return self.__isReadable
-   end
-)
+File.isReadable = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         return self.__isReadable
+      end
+}
 
-File.isWritable =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      return self.__isWritable
-   end
-)
+File.isWritable = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         return self.__isWritable
+      end
+}
 
-File.isAutoSpacing =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      return self.__isAutoSpacing
-   end
-)
+File.isAutoSpacing = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         return self.__isAutoSpacing
+      end
+}
 
-File.hasError =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      return self.__hasError
-   end
-)
+File.hasError = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         return self.__hasError
+      end
+}
 
-File.isBinary =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      return self.__isBinary
-   end
-)
+File.isBinary = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         return self.__isBinary
+      end
+}
 
 for _, iotype in pairs(iotypes) do
-   File['write' .. iotype.Type] =
-      argcheck(
-      {{name="self", type="torch.File"},
-       {name="storage", type="torch." .. iotype.Type .. "Storage"}},
-      function(self, storage)
-         return iotype.write(self, storage.__data, storage.__size)
-      end,
-
-      {{name="self", type="torch.File"},
-       {name="value", type="number"}},
-      function(self, value)
-         local p = iotype.ffipval(value)
-         return iotype.write(self, p, 1)
-      end
-   )
-
-   File['read' .. iotype.Type] =
-      argcheck(
-      {{name="self", type="torch.File"},
-       {name="storage", type="torch." .. iotype.Type .. "Storage"}},
-      function(self, storage)
-         return iotype.read(self, storage.__data, storage.__size)
-      end,
-
-      {{name="self", type="torch.File"},
-       {name="size", type="number"}},
-      function(self, size)
-         local storage = iotype.Storage(size)
-         local n = iotype.read(self, storage.__data, storage.__size)
-         if n ~= size then
-            storage:resize(n)
+   File['write' .. iotype.Type] = argcheck{
+      {name="self", type="torch.File"},
+      {name="storage", type="torch." .. iotype.Type .. "Storage"},
+      call =
+         function(self, storage)
+            return iotype.write(self, storage.__data, storage.__size)
          end
-         return storage
-      end,
+   }
 
-      {{name="self", type="torch.File"}},
-      function(self)
-         local p = iotype.ffipval()
-         local n = iotype.read(self, p, 1)
-         if n ~= 0 then
-            return tonumber(p[0])
+   argcheck{
+      {name="self", type="torch.File"},
+      {name="value", type="number"},
+      chain = File['write' .. iotype.Type],
+      call =
+         function(self, value)
+            local p = iotype.ffipval(value)
+            return iotype.write(self, p, 1)
          end
-      end
-   )
+   }
+
+   File['read' .. iotype.Type] = argcheck{
+      {name="self", type="torch.File"},
+      {name="storage", type="torch." .. iotype.Type .. "Storage"},
+      call =
+         function(self, storage)
+            return iotype.read(self, storage.__data, storage.__size)
+         end
+   }
+
+   argcheck{
+      {name="self", type="torch.File"},
+      {name="size", type="number"},
+      chain = File['read' .. iotype.Type],
+      call =
+         function(self, size)
+            local storage = iotype.Storage(size)
+            local n = iotype.read(self, storage.__data, storage.__size)
+            if n ~= size then
+               storage:resize(n)
+            end
+            return storage
+         end
+   }
+
+   argcheck{
+      {name="self", type="torch.File"},
+      chain = File['read' .. iotype.Type],
+      call =
+         function(self)
+            local p = iotype.ffipval()
+            local n = iotype.read(self, p, 1)
+            if n ~= 0 then
+               return tonumber(p[0])
+            end
+         end
+   }
 end
 
-File.binary =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      self.__isBinary = true
-      return self
-   end
-)
+File.binary = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         self.__isBinary = true
+         return self
+      end
+}
 
-File.ascii =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      self.__isBinary = false
-      return self
-   end
-)
+File.ascii = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         self.__isBinary = false
+         return self
+      end
+}
 
-File.autoSpacing =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      self.__isAutoSpacing = true
-      return self
-   end
-)
+File.autoSpacing = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         self.__isAutoSpacing = true
+         return self
+      end
+}
 
-File.noAutoSpacing =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      self.__isAutoSpacing = false
-      return self
-   end
-)
+File.noAutoSpacing = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         self.__isAutoSpacing = false
+         return self
+      end
+}
 
-File.quiet =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      self.__isQuiet = true
-      return self
-   end
-)
+File.quiet = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         self.__isQuiet = true
+         return self
+      end
+}
 
-File.pedantic =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      self.__isQuiet = false
-      return self
-   end
-)
+File.pedantic = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         self.__isQuiet = false
+         return self
+      end
+}
 
-File.clearError =
-   argcheck(
-   {{name="self", type="torch.File"}},
-   function(self)
-      self.__hasError = false
-      return self
-   end
-)
+File.clearError = argcheck{
+   {name="self", type="torch.File"},
+   call =
+      function(self)
+         self.__hasError = false
+         return self
+      end
+}
 
 local function readchars(self, n)
    local buffsize = 1024
@@ -246,71 +261,77 @@ local function readchars(self, n)
    end
 end
 
-File.read =
-   argcheck(
-   {{{name="self", type="torch.File"},
-    {name="format", type="string"}},
-   function(self, format)
-      if format:match('^%*n') then
-         local p = ffi.new('double[1]')
-         local n = self:__scanf("%lf", p, 1)
-         if n == 1 then
-            return p[0]
+File.read = argcheck{
+   {name="self", type="torch.File"},
+   {name="format", type="string"},
+   call =
+      function(self, format)
+         if format:match('^%*n') then
+            local p = ffi.new('double[1]')
+            local n = self:__scanf("%lf", p, 1)
+            if n == 1 then
+               return p[0]
+            end
+         elseif format:match('^%*a') then
+            return readchars(self, math.huge)
+         elseif format:match('^%*l') then
+            return self:__gets()
+         elseif tonumber(format) then
+            return readchars(self, tonumber(format))
+         else
+            error('invalid format')
          end
-      elseif format:match('^%*a') then
-         return readchars(self, math.huge)
-      elseif format:match('^%*l') then
-         return self:__gets()
-      elseif tonumber(format) then
-         return readchars(self, tonumber(format))
-      else
-         error('invalid format')
       end
-   end
-})
+}
 
-File.write =
-   argcheck(
-   {{{name="self", type="torch.File"},
-    {name="value", type="string"}},
-   function(self, value)
-      self:__write(ffi.cast('char*', value), 1, #value)
-   end,
+File.write = argcheck{
+   {name="self", type="torch.File"},
+   {name="value", type="string"},
+   call =
+      function(self, value)
+         self:__write(ffi.cast('char*', value), 1, #value)
+      end
+}
 
-   {{name="self", type="torch.File"},
-    {name="value", type="number"}},
-   function(self, value)
-      local p = ffi.new('double[1]')
-      p[0] = value
-      self:__printf("%lf", p, 1)
-   end
-})
+argcheck{
+   {name="self", type="torch.File"},
+   {name="value", type="number"},
+   chain = File.write,
+   call =
+      function(self, value)
+         local p = ffi.new('double[1]')
+         p[0] = value
+         self:__printf("%lf", p, 1)
+      end
+}
 
-File.readRaw =
-   argcheck(
-   {{name="self", type="torch.File"},
-    {name="typename", type="string"},
-    {name="cdata", type="cdata"},
-    {name="size", type="number"}},
-   function(self, type, cdata, size)
-      assert(iotypes[type], 'unknown type')
-      iotypes[type].read(self, cdata, size)
-   end
-)
+File.readRaw = argcheck{
+   {name="self", type="torch.File"},
+   {name="typename", type="string"},
+   {name="cdata", type="cdata"},
+   {name="size", type="number"},
+   call =
+      function(self, type, cdata, size)
+         assert(iotypes[type], 'unknown type')
+         iotypes[type].read(self, cdata, size)
+      end
+}
 
-File.writeRaw =
-   argcheck(
-   {{name="self", type="torch.File"},
-    {name="typename", type="string"},
-    {name="cdata", type="cdata"},
-    {name="size", type="number"}},
-   function(self, type, cdata, size)
-      assert(iotypes[type], 'unknown type')
-      iotypes[type].write(self, cdata, size)
-   end
-)
+File.writeRaw = argcheck{
+   {name="self", type="torch.File"},
+   {name="typename", type="string"},
+   {name="cdata", type="cdata"},
+   {name="size", type="number"},
+   call =
+      function(self, type, cdata, size)
+         assert(iotypes[type], 'unknown type')
+         iotypes[type].write(self, cdata, size)
+      end
+}
 
-torch.File = torch.constructor(File,
-                               function()
-                                  error('virtual class')
-                               end)
+File.new = argcheck{
+   call =
+      function()
+         error('virtual class')
+      end
+}
