@@ -1,4 +1,4 @@
-.local argcheck = require 'argcheck'
+local argcheck = require 'argcheck'
 local torch = require 'torch.env'
 local class = require 'class'
 local ffi = require 'ffi'
