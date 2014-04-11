@@ -4,6 +4,7 @@ local torch = require 'torch.env'
 local class = require 'class'
 local ffi = require 'ffi'
 local C = require 'torch.clib'
+local TH = require 'torch.TH'
 
 local Storage = class('torch.Storage')
 torch.Storage = Storage

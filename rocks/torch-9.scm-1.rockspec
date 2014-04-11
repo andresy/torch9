@@ -24,6 +24,6 @@ dependencies = {
 
 build = {
    type = "command",
-   build_command = "cmake -E make_directory build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DLUA_PATH_DIR=$(LUADIR)/torch -DLUA_CPATH_DIR=$(LIBDIR) -DLUA_EXECUTABLE=$(LUA) .. && $(MAKE)",
+   build_command = "cmake -E make_directory build && cd build && cmake -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DCMAKE_BUILD_TYPE=Release -DLUA_PATH_DIR=$(LUADIR)/torch -DLUA_CPATH_DIR=$(LIBDIR) -DLUA_EXECUTABLE=$(LUA) .. && $(MAKE)",
    install_command = "cd build && $(MAKE) install"
 }
