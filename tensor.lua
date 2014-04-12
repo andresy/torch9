@@ -5,8 +5,8 @@ local class = require 'class'
 local ffi = require 'ffi'
 local C = require 'torch.clib'
 
-local Tensor = class('torch.Tensor')
-torch.Tensor = Tensor
+local RealTensor = class('torch.RealTensor')
+torch.RealTensor = RealTensor
 
 local longvlact = ffi.typeof('long[?]')
 
@@ -92,7 +92,7 @@ local function rawSet(self, storage, storageOffset, nDimension, size, stride)
    self.__storage = storage
 
    -- storageOffset
-   assert(storageOffset >= 0, "Tensor: invalid storage offset")
+   assert(storageOffset >= 0, "RealTensor: invalid storage offset")
    self.__storageOffset = storageOffset
 
    -- size and stride
@@ -100,34 +100,34 @@ local function rawSet(self, storage, storageOffset, nDimension, size, stride)
 end
 
 -- access methods
-Tensor.storage = argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.storage = argcheck{
+   {name='self', type='torch.RealTensor'},
    call =
       function(self)
          return self.__storage
       end
 }
 
-Tensor.storageOffset= argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.storageOffset= argcheck{
+   {name='self', type='torch.RealTensor'},
    call =
    function(self)
       return self.__storageOffset
    end
 }
-Tensor.offset = Tensor.storageOffset
+RealTensor.offset = RealTensor.storageOffset
 
-Tensor.nDimension= argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.nDimension= argcheck{
+   {name='self', type='torch.RealTensor'},
    call =
    function(self)
       return self.__nDimension
    end
 }
-Tensor.dim = Tensor.nDimension
+RealTensor.dim = RealTensor.nDimension
 
-Tensor.size = argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.size = argcheck{
+   {name='self', type='torch.RealTensor'},
    {name='dim', type='number', opt=true},
    call =
    function(self, dim)
@@ -141,8 +141,8 @@ Tensor.size = argcheck{
 }
 
 
-Tensor.stride = argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.stride = argcheck{
+   {name='self', type='torch.RealTensor'},
    {name='dim', type='number', opt=true},
    call =
    function(self, dim)
@@ -155,8 +155,8 @@ Tensor.stride = argcheck{
    end
 }
 
-Tensor.data = argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.data = argcheck{
+   {name='self', type='torch.RealTensor'},
    call =
    function(self)
       if self.__storage then
@@ -165,8 +165,8 @@ Tensor.data = argcheck{
    end
 }
 
-Tensor.setFlag = argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.setFlag = argcheck{
+   {name='self', type='torch.RealTensor'},
    {name='flag', type='number'},
    call =
    function(self, flag)
@@ -175,8 +175,8 @@ Tensor.setFlag = argcheck{
    end
 }
 
-Tensor.clearFlag = argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.clearFlag = argcheck{
+   {name='self', type='torch.RealTensor'},
     {name='flag', type='number'},
     call =
    function(self, flag)
@@ -207,28 +207,28 @@ local function new(self, storage, storageOffset, size, stride)
    return self
 end
 
-Tensor.__init = argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.__init = argcheck{
+   {name='self', type='torch.RealTensor'},
    call = new
 }
 
 argcheck{
-   {name='self', type='torch.Tensor'},
+   {name='self', type='torch.RealTensor'},
    {name='storage', type='torch.Storage'},
    {name='storageOffset', type='number', default=0},
    {name='size', type='table', check=checknumbers, opt=true},
    {name='stride', type='table',  check=checknumbers, opt=true},
-   chain = Tensor.__init,
+   chain = RealTensor.__init,
    call = new
 }
 
 argcheck{
-   {name='self', type='torch.Tensor'},
+   {name='self', type='torch.RealTensor'},
    {name='dim1', type='number'},
    {name='dim2', type='number', opt=true},
    {name='dim3', type='number', opt=true},
    {name='dim4', type='number', opt=true},
-   chain = Tensor.__init,
+   chain = RealTensor.__init,
    call =
       function(self, dim1, dim2, dim3, dim4)
          local size = {dim1, dim2, dim3, dim4}
@@ -237,9 +237,9 @@ argcheck{
 }
 
 argcheck{
-   {name='self', type='torch.Tensor'},
+   {name='self', type='torch.RealTensor'},
    {name='size', type='table', check=checknumbers}, -- lower priority than the data init
-   chain = Tensor.__init,
+   chain = RealTensor.__init,
    call =
    function(self, size)
       return new(self, nil, nil, size, nil)
@@ -247,9 +247,9 @@ argcheck{
 }
 
 argcheck{
-   {name='self', type='torch.Tensor'},
-   {name='tensor', type='torch.Tensor'},
-   chain = Tensor.__init,
+   {name='self', type='torch.RealTensor'},
+   {name='tensor', type='torch.RealTensor'},
+   chain = RealTensor.__init,
    call =
       function(self, tensor)
          return new(self,
@@ -260,9 +260,9 @@ argcheck{
       end
 }
 
-Tensor.set = argcheck{
-   {name='self', type='torch.Tensor'},
-    {name='src', type='torch.Tensor'},
+RealTensor.set = argcheck{
+   {name='self', type='torch.RealTensor'},
+    {name='src', type='torch.RealTensor'},
     call =
    function(self, src)
       if self ~= src then
@@ -277,8 +277,8 @@ Tensor.set = argcheck{
    end
 }
 
-Tensor.resize = argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.resize = argcheck{
+   {name='self', type='torch.RealTensor'},
    {name='size', type='table', check=checknumbers},
    {name='stride', type='table', check=checknumbers, opt=true},
    call =
@@ -290,12 +290,12 @@ Tensor.resize = argcheck{
 }
 
 argcheck{
-   {name='self', type='torch.Tensor'},
+   {name='self', type='torch.RealTensor'},
    {name='dim1', type='number'},
    {name='dim2', type='number', opt=true},
    {name='dim3', type='number', opt=true},
    {name='dim4', type='number', opt=true},
-   chain = Tensor.resize,
+   chain = RealTensor.resize,
    call =
    function(self, dim1, dim2, dim3, dim4)
          local size = {dim1, dim2, dim3, dim4}
@@ -304,9 +304,9 @@ argcheck{
    end
 }
 
-Tensor.resizeAs = argcheck{
-   {name='self', type='torch.Tensor'},
-   {name='src', type='torch.Tensor'},
+RealTensor.resizeAs = argcheck{
+   {name='self', type='torch.RealTensor'},
+   {name='src', type='torch.RealTensor'},
    call =
    function(self, src)
       rawResize(self, src.__nDimension, src.__size, nil)
@@ -314,15 +314,15 @@ Tensor.resizeAs = argcheck{
    end
 }
 
-Tensor.narrow = argcheck{
-   {name='self', type='torch.Tensor'},
-   {name='src', type='torch.Tensor', opt=true},
+RealTensor.narrow = argcheck{
+   {name='self', type='torch.RealTensor'},
+   {name='src', type='torch.RealTensor', opt=true},
    {name='dim', type='number'},
    {name='idx', type='number'},
    {name='size', type='number'},
    call =
    function(self, src, dim, idx, size)
-      local dst = src and self or torch.Tensor()
+      local dst = src and self or torch.RealTensor()
       src = src or self
       dim = dim - 1
       idx = idx - 1
@@ -342,14 +342,14 @@ Tensor.narrow = argcheck{
    end
 }
 
-Tensor.select = argcheck{
-   {name='self', type='torch.Tensor'},
-    {name='src', type='torch.Tensor', opt=true},
+RealTensor.select = argcheck{
+   {name='self', type='torch.RealTensor'},
+    {name='src', type='torch.RealTensor', opt=true},
     {name='dim', type='number'},
     {name='idx', type='number'},
     call =
    function(self, src, dim, idx)
-      local dst = src and self or torch.Tensor()
+      local dst = src and self or torch.RealTensor()
       src = src or self
       dim = dim - 1
       idx = idx - 1
@@ -372,14 +372,14 @@ Tensor.select = argcheck{
    end
 }
 
-Tensor.transpose = argcheck{
-   {name='self', type='torch.Tensor'},
-    {name='src', type='torch.Tensor', opt=true},
+RealTensor.transpose = argcheck{
+   {name='self', type='torch.RealTensor'},
+    {name='src', type='torch.RealTensor', opt=true},
     {name='dim1', type='number'},
     {name='dim2', type='number'},
     call =
    function(self, src, dim1, dim2)
-      local dst = src and self or torch.Tensor()
+      local dst = src and self or torch.RealTensor()
       src = src or self
       dst:set(src)
       dim1 = dim1 - 1
@@ -403,15 +403,15 @@ Tensor.transpose = argcheck{
    end
 }
 
-Tensor.unfold = argcheck{
-   {name='self', type='torch.Tensor'},
-    {name='src', type='torch.Tensor', opt=true},
+RealTensor.unfold = argcheck{
+   {name='self', type='torch.RealTensor'},
+    {name='src', type='torch.RealTensor', opt=true},
     {name='dim', type='number'},
     {name='size', type='number'},
     {name='step', type='number'},
     call =
    function(self, src, dim, size, step)
-      local dst = src and self or torch.Tensor()
+      local dst = src and self or torch.RealTensor()
       src = src or self
       dst:set(src)
       dim = dim -1
@@ -444,12 +444,12 @@ Tensor.unfold = argcheck{
    end
 }
 
-Tensor.squeeze = argcheck{
-   {name='self', type='torch.Tensor'},
-    {name='src', type='torch.Tensor', opt=true},
+RealTensor.squeeze = argcheck{
+   {name='self', type='torch.RealTensor'},
+    {name='src', type='torch.RealTensor', opt=true},
     call =
    function(self, src)
-      local dst = src and self or torch.Tensor()
+      local dst = src and self or torch.RealTensor()
       src = src or self
       dst:set(src)
 
@@ -479,13 +479,13 @@ Tensor.squeeze = argcheck{
    end
 }
 
-Tensor.squeeze1d = argcheck{
-   {name='self', type='torch.Tensor'},
-    {name='src', type='torch.Tensor', opt=true},
+RealTensor.squeeze1d = argcheck{
+   {name='self', type='torch.RealTensor'},
+    {name='src', type='torch.RealTensor', opt=true},
     {name='dim', type='number'},
     call =
    function(self, src, dim)
-      local dst = src and self or torch.Tensor()
+      local dst = src and self or torch.RealTensor()
       src = src or self
       dst:set(src)
       dim = dim - 1
@@ -504,8 +504,8 @@ Tensor.squeeze1d = argcheck{
    end
 }
 
-Tensor.isContiguous = argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.isContiguous = argcheck{
+   {name='self', type='torch.RealTensor'},
    call =
    function(self)
       local z = 1
@@ -522,8 +522,8 @@ Tensor.isContiguous = argcheck{
    end
 }
 
-Tensor.nElement = argcheck{
-   {name='self', type='torch.Tensor'},
+RealTensor.nElement = argcheck{
+   {name='self', type='torch.RealTensor'},
    call =
    function(self)
       if self.__nDimension == 0 then
@@ -538,7 +538,7 @@ Tensor.nElement = argcheck{
    end
 }
 
-function Tensor:__index(k)
+function RealTensor:__index(k)
    if type(k) == 'number' then
       assert(self.__nDimension >= 1 and k > 0 and k <= self.__size[0], 'out of bounds')
       if self.__nDimension == 1 then
@@ -548,13 +548,13 @@ function Tensor:__index(k)
          return self:select(1, k)
       end
    else
-      return Tensor[k]
+      return RealTensor[k]
    end
 end
 
-Tensor.__tostring = display.tensor
+RealTensor.__tostring = display.tensor
 
-function Tensor:write(file)
+function RealTensor:write(file)
    file:writeLong(self.__nDimension)
    file:writeRaw('long', self.__size, self.__nDimension)
    file:writeRaw('long', self.__stride, self.__nDimension)
@@ -562,7 +562,7 @@ function Tensor:write(file)
    file:writeObject(self.__storage)
 end
 
-function Tensor:read(file, version)
+function RealTensor:read(file, version)
    self.__nDimension = file:readLong()
    self.__size = longvlact(self.__nDimension)
    self.__stride = longvlact(self.__nDimension)

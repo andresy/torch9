@@ -1044,12 +1044,12 @@ extern THAllocator THMapAllocator;
 
 typedef struct THByteStorage
 {
-    unsigned char *data;
-    long size;
-    int refcount;
-    char flag;
-    THAllocator *allocator;
-    void *allocatorContext;
+    unsigned char *__data;
+    long __size;
+    int __refcount;
+    char __flag;
+    THAllocator *__allocator;
+    void *__allocatorContext;
 } THByteStorage;
 
 extern unsigned char* THByteStorage_data(const THByteStorage*);
@@ -1087,12 +1087,12 @@ extern void THByteStorage_resize(THByteStorage *storage, long size);
 extern void THByteStorage_fill(THByteStorage *storage, unsigned char value);
 typedef struct THCharStorage
 {
-    char *data;
-    long size;
-    int refcount;
-    char flag;
-    THAllocator *allocator;
-    void *allocatorContext;
+    char *__data;
+    long __size;
+    int __refcount;
+    char __flag;
+    THAllocator *__allocator;
+    void *__allocatorContext;
 } THCharStorage;
 
 extern char* THCharStorage_data(const THCharStorage*);
@@ -1130,12 +1130,12 @@ extern void THCharStorage_resize(THCharStorage *storage, long size);
 extern void THCharStorage_fill(THCharStorage *storage, char value);
 typedef struct THShortStorage
 {
-    short *data;
-    long size;
-    int refcount;
-    char flag;
-    THAllocator *allocator;
-    void *allocatorContext;
+    short *__data;
+    long __size;
+    int __refcount;
+    char __flag;
+    THAllocator *__allocator;
+    void *__allocatorContext;
 } THShortStorage;
 
 extern short* THShortStorage_data(const THShortStorage*);
@@ -1173,12 +1173,12 @@ extern void THShortStorage_resize(THShortStorage *storage, long size);
 extern void THShortStorage_fill(THShortStorage *storage, short value);
 typedef struct THIntStorage
 {
-    int *data;
-    long size;
-    int refcount;
-    char flag;
-    THAllocator *allocator;
-    void *allocatorContext;
+    int *__data;
+    long __size;
+    int __refcount;
+    char __flag;
+    THAllocator *__allocator;
+    void *__allocatorContext;
 } THIntStorage;
 
 extern int* THIntStorage_data(const THIntStorage*);
@@ -1216,12 +1216,12 @@ extern void THIntStorage_resize(THIntStorage *storage, long size);
 extern void THIntStorage_fill(THIntStorage *storage, int value);
 typedef struct THLongStorage
 {
-    long *data;
-    long size;
-    int refcount;
-    char flag;
-    THAllocator *allocator;
-    void *allocatorContext;
+    long *__data;
+    long __size;
+    int __refcount;
+    char __flag;
+    THAllocator *__allocator;
+    void *__allocatorContext;
 } THLongStorage;
 
 extern long* THLongStorage_data(const THLongStorage*);
@@ -1259,12 +1259,12 @@ extern void THLongStorage_resize(THLongStorage *storage, long size);
 extern void THLongStorage_fill(THLongStorage *storage, long value);
 typedef struct THFloatStorage
 {
-    float *data;
-    long size;
-    int refcount;
-    char flag;
-    THAllocator *allocator;
-    void *allocatorContext;
+    float *__data;
+    long __size;
+    int __refcount;
+    char __flag;
+    THAllocator *__allocator;
+    void *__allocatorContext;
 } THFloatStorage;
 
 extern float* THFloatStorage_data(const THFloatStorage*);
@@ -1302,12 +1302,12 @@ extern void THFloatStorage_resize(THFloatStorage *storage, long size);
 extern void THFloatStorage_fill(THFloatStorage *storage, float value);
 typedef struct THDoubleStorage
 {
-    double *data;
-    long size;
-    int refcount;
-    char flag;
-    THAllocator *allocator;
-    void *allocatorContext;
+    double *__data;
+    long __size;
+    int __refcount;
+    char __flag;
+    THAllocator *__allocator;
+    void *__allocatorContext;
 } THDoubleStorage;
 
 extern double* THDoubleStorage_data(const THDoubleStorage*);
@@ -1470,15 +1470,15 @@ extern void THDoubleStorage_copyDouble(THDoubleStorage *storage, struct THDouble
 
 typedef struct THByteTensor
 {
-    long *size;
-    long *stride;
-    int nDimension;
+    long *__size;
+    long *__stride;
+    int __nDimension;
 
-    THByteStorage *storage;
-    long storageOffset;
-    int refcount;
+    THByteStorage *__storage;
+    long __storageOffset;
+    int __refcount;
 
-    char flag;
+    char __flag;
 
 } THByteTensor;
 
@@ -1591,15 +1591,15 @@ extern unsigned char THByteTensor_get4d(const THByteTensor *tensor, long x0, lon
 
 typedef struct THCharTensor
 {
-    long *size;
-    long *stride;
-    int nDimension;
+    long *__size;
+    long *__stride;
+    int __nDimension;
 
-    THCharStorage *storage;
-    long storageOffset;
-    int refcount;
+    THCharStorage *__storage;
+    long __storageOffset;
+    int __refcount;
 
-    char flag;
+    char __flag;
 
 } THCharTensor;
 
@@ -1712,15 +1712,15 @@ extern char THCharTensor_get4d(const THCharTensor *tensor, long x0, long x1, lon
 
 typedef struct THShortTensor
 {
-    long *size;
-    long *stride;
-    int nDimension;
+    long *__size;
+    long *__stride;
+    int __nDimension;
 
-    THShortStorage *storage;
-    long storageOffset;
-    int refcount;
+    THShortStorage *__storage;
+    long __storageOffset;
+    int __refcount;
 
-    char flag;
+    char __flag;
 
 } THShortTensor;
 
@@ -1833,15 +1833,15 @@ extern short THShortTensor_get4d(const THShortTensor *tensor, long x0, long x1, 
 
 typedef struct THIntTensor
 {
-    long *size;
-    long *stride;
-    int nDimension;
+    long *__size;
+    long *__stride;
+    int __nDimension;
 
-    THIntStorage *storage;
-    long storageOffset;
-    int refcount;
+    THIntStorage *__storage;
+    long __storageOffset;
+    int __refcount;
 
-    char flag;
+    char __flag;
 
 } THIntTensor;
 
@@ -1954,15 +1954,15 @@ extern int THIntTensor_get4d(const THIntTensor *tensor, long x0, long x1, long x
 
 typedef struct THLongTensor
 {
-    long *size;
-    long *stride;
-    int nDimension;
+    long *__size;
+    long *__stride;
+    int __nDimension;
 
-    THLongStorage *storage;
-    long storageOffset;
-    int refcount;
+    THLongStorage *__storage;
+    long __storageOffset;
+    int __refcount;
 
-    char flag;
+    char __flag;
 
 } THLongTensor;
 
@@ -2075,15 +2075,15 @@ extern long THLongTensor_get4d(const THLongTensor *tensor, long x0, long x1, lon
 
 typedef struct THFloatTensor
 {
-    long *size;
-    long *stride;
-    int nDimension;
+    long *__size;
+    long *__stride;
+    int __nDimension;
 
-    THFloatStorage *storage;
-    long storageOffset;
-    int refcount;
+    THFloatStorage *__storage;
+    long __storageOffset;
+    int __refcount;
 
-    char flag;
+    char __flag;
 
 } THFloatTensor;
 
@@ -2196,15 +2196,15 @@ extern float THFloatTensor_get4d(const THFloatTensor *tensor, long x0, long x1, 
 
 typedef struct THDoubleTensor
 {
-    long *size;
-    long *stride;
-    int nDimension;
+    long *__size;
+    long *__stride;
+    int __nDimension;
 
-    THDoubleStorage *storage;
-    long storageOffset;
-    int refcount;
+    THDoubleStorage *__storage;
+    long __storageOffset;
+    int __refcount;
 
-    char flag;
+    char __flag;
 
 } THDoubleTensor;
 

@@ -21,13 +21,7 @@ for i=1,#types do
       txt = txt:gsub('([%p%s])accreal([%p%s])', '%1' .. accreal .. '%2')
    end
 
-   while txt:match('([%p%s])Storage([%p%s])') do
-      txt = txt:gsub('([%p%s])Storage([%p%s])', '%1' .. Real .. 'Storage' .. '%2')
-   end
-
-   while txt:match('([%p%s])Tensor([%p%s])') do
-      txt = txt:gsub('([%p%s])Tensor([%p%s])', '%1' .. Real .. 'Tensor' .. '%2')
-   end
+   txt = txt:gsub('Real', Real)
 
    local dst = dst:gsub('(%.[^%.]+)$', '_' .. real .. '%1')
    assert(dst ~= src, 'source and destination are same')
