@@ -3,9 +3,9 @@ local argcheck = require 'argcheck'
 local torch = require 'torch.env'
 local class = require 'class'
 local ffi = require 'ffi'
-local C = require 'torch.clib'
+local C = require 'torch.TH'
 
-local RealTensor = class('torch.RealTensor')
+local RealTensor = class('torch.RealTensor', nil, ffi.typeof('THRealTensor&'))
 torch.RealTensor = RealTensor
 
 local longvlact = ffi.typeof('long[?]')
@@ -18,111 +18,33 @@ local function carray2table(arr, size)
    return tbl
 end
 
-local function rawInit(self)
-   self.__nDimension = 0
-   self.__storageOffset = 0
-   self.__flag = 0
-   return self
-end
-
-local function rawResize(self, nDimension, size, stride)
-   local hascorrectsize = true
-
-   local nDimension_ = 0
-   for d=0,nDimension-1 do
-      if size[d] > 0 then
-         nDimension_ = nDimension_ + 1
-         if self.__nDimension > d and size[d] ~= self.__size[d] then
-            hascorrectsize = false
-         end
-         if self.__nDimension > d and stride and stride[d] >= 0 and stride[d] ~= self.__stride[d] then
-            hascorrectsize = false
-         end
-      else
-         break
-      end
-   end
-   nDimension = nDimension_
-
-   if nDimension ~= self.__nDimension then
-      hascorrectsize = false
-   end
-
-   if hascorrectsize then
-      return
-   end
-   
-   if nDimension > 0 then
-      if nDimension ~= self.__nDimension then
-         self.__size = longvlact(nDimension)
-         self.__stride = longvlact(nDimension)
-         self.__nDimension = nDimension
-      end
-      
-      totalSize = 1
-      for d=self.__nDimension-1,0,-1 do
-         self.__size[d] = size[d]
-         if stride and stride[d] >= 0 then
-            self.__stride[d] = stride[d]
-         else
-            if d == self.__nDimension-1 then
-               self.__stride[d] = 1
-            else
-               self.__stride[d] = self.__size[d+1]*self.__stride[d+1]
-            end
-         end
-         totalSize = totalSize + (self.__size[d]-1)*self.__stride[d]
-      end
-      
-      if totalSize+self.__storageOffset > 0 then
-         if self.__storage == nil then
-            self.__storage = torch.Storage()
-         end
-         if totalSize+self.__storageOffset > self.__storage.__size then
-            self.__storage:resize(tonumber(totalSize+self.__storageOffset))
-         end
-      end
-   else
-      self.__nDimension = 0
-   end
-end
-
-local function rawSet(self, storage, storageOffset, nDimension, size, stride)
-   -- storage
-   self.__storage = storage
-
-   -- storageOffset
-   assert(storageOffset >= 0, "RealTensor: invalid storage offset")
-   self.__storageOffset = storageOffset
-
-   -- size and stride
-   rawResize(self, nDimension, size, stride)
-end
-
 -- access methods
 RealTensor.storage = argcheck{
    {name='self', type='torch.RealTensor'},
    call =
       function(self)
-         return self.__storage
+         local storage = self.__storage[0]
+         C.THRealStorage_retain(storage)
+         ffi.gc(storage, C.THRealStorage_free)
+         return storage
       end
 }
 
 RealTensor.storageOffset= argcheck{
    {name='self', type='torch.RealTensor'},
    call =
-   function(self)
-      return self.__storageOffset
-   end
+      function(self)
+         return tonumber(self.__storageOffset+1)
+      end
 }
 RealTensor.offset = RealTensor.storageOffset
 
-RealTensor.nDimension= argcheck{
+RealTensor.nDimension = argcheck{
    {name='self', type='torch.RealTensor'},
    call =
-   function(self)
-      return self.__nDimension
-   end
+      function(self)
+         return tonumber(self.__nDimension)
+      end
 }
 RealTensor.dim = RealTensor.nDimension
 
@@ -185,78 +107,70 @@ RealTensor.clearFlag = argcheck{
    end
 }
 
--- creation
-local function new(self, storage, storageOffset, size, stride)
-   rawInit(self)
 
-   local dim = size and #size or 0
-
-   storageOffset = storageOffset or 0
-
-   if size and stride then
-      assert(dim == #stride, 'inconsistent size/stride sizes')
-   end
-
-   rawSet(self,
-          storage,
-          storageOffset,
-          dim,
-          size and longvlact(dim, size) or nil,
-          stride and longvlact(dim, stride) or nil)
-
-   return self
-end
-
-RealTensor.__init = argcheck{
-   {name='self', type='torch.RealTensor'},
-   call = new
-}
-
-argcheck{
-   {name='self', type='torch.RealTensor'},
-   {name='storage', type='torch.Storage'},
-   {name='storageOffset', type='number', default=0},
-   {name='size', type='table', check=checknumbers, opt=true},
-   {name='stride', type='table',  check=checknumbers, opt=true},
-   chain = RealTensor.__init,
-   call = new
-}
-
-argcheck{
-   {name='self', type='torch.RealTensor'},
-   {name='dim1', type='number'},
-   {name='dim2', type='number', opt=true},
-   {name='dim3', type='number', opt=true},
-   {name='dim4', type='number', opt=true},
-   chain = RealTensor.__init,
+RealTensor.new = argcheck{
    call =
-      function(self, dim1, dim2, dim3, dim4)
-         local size = {dim1, dim2, dim3, dim4}
-         return new(self, nil, nil, size, nil)
+      function()
+         local self = C.THRealTensor_new()[0]
+         ffi.gc(self, C.THRealTensor_free)
+         return self
       end
 }
 
 argcheck{
-   {name='self', type='torch.RealTensor'},
-   {name='size', type='table', check=checknumbers}, -- lower priority than the data init
-   chain = RealTensor.__init,
+   {name='storage', type='torch.Storage'},
+   {name='storageOffset', type='number', default=1},
+   {name='size', type='table', check=checknumbers, opt=true},
+   {name='stride', type='table',  check=checknumbers, opt=true},
+   chain = RealTensor.new,
    call =
-   function(self, size)
-      return new(self, nil, nil, size, nil)
+      function(storage, storageOffset, size, stride)
+         if size then
+            size = ffi.new('long[?]', #size, size)
+         end
+         if stride then
+            stride = ffi.new('long[?]', #stride, stride)
+         end
+         local self = C.THRealTensor_newWithStorage(storage, storageOffset-1, size, stride)[0]
+         ffi.gc(self, C.THRealTensor_free)
+         return self
+      end
+}
+
+argcheck{
+   {name='dim1', type='number'},
+   {name='dim2', type='number', default=0},
+   {name='dim3', type='number', default=0},
+   {name='dim4', type='number', default=0},
+   chain = RealTensor.new,
+   call =
+      function(dim1, dim2, dim3, dim4)
+         local self = C.THRealTensor_newWithSize4d(dim1, dim2, dim3, dim4)[0]
+         ffi.gc(self, C.THRealTensor_free)
+         return self         
+      end
+}
+
+argcheck{
+   {name='size', type='table', check=checknumbers}, -- lower priority than the data init
+   chain = RealTensor.new,
+   call =
+   function(size)
+         size = ffi.new('long[?]', #size, size)
+         local self = C.THRealTensor_newWithSize(size, nil)[0]
+         ffi.gc(self, C.THRealTensor_free)
+         return self
    end
 }
 
 argcheck{
-   {name='self', type='torch.RealTensor'},
    {name='tensor', type='torch.RealTensor'},
-   chain = RealTensor.__init,
+   chain = RealTensor.new,
    call =
-      function(self, tensor)
-         return new(self,
-                    tensor.__storage,
-                    tensor.__storageOffset,
-                    carray2table(tensor.__size, tensor.__nDimension),
-                    carray2table(tensor.__stride, tensor.__nDimension))
+      function(tensor)
+         local self = C.THRealTensor_newWithTensor(tensor)[0]
+         ffi.gc(self, C.THRealTensor_free)
+         return self
       end
 }
 
@@ -264,17 +178,10 @@ RealTensor.set = argcheck{
    {name='self', type='torch.RealTensor'},
     {name='src', type='torch.RealTensor'},
     call =
-   function(self, src)
-      if self ~= src then
-         rawSet(self,
-                src.__storage,
-                src.__storageOffset,
-                src.__nDimension,
-                src.__size,
-             src.__stride)
-      end
-      return self
-   end
+       function(self, src)
+          C.THRealTensor_set(self, src)
+          return self
+       end
 }
 
 RealTensor.resize = argcheck{
@@ -285,33 +192,37 @@ RealTensor.resize = argcheck{
       function(self, size, stride)
          local dim = #size
          assert(not stride or (#stride == dim), 'inconsistent size/stride sizes')
-         rawResize(self, dim, longvlact(dim, size), stride and longvlact(dim, stride))
+         size = ffi.new('long[?]', dim, size)
+         if stride then
+            stride = ffi.new('long[?]', dim, stride)
+         end
+         C.THRealTensor_resize(self, size, stride)
+         return self
       end
 }
 
 argcheck{
    {name='self', type='torch.RealTensor'},
    {name='dim1', type='number'},
-   {name='dim2', type='number', opt=true},
-   {name='dim3', type='number', opt=true},
-   {name='dim4', type='number', opt=true},
+   {name='dim2', type='number', default=0},
+   {name='dim3', type='number', default=0},
+   {name='dim4', type='number', default=0},
    chain = RealTensor.resize,
    call =
-   function(self, dim1, dim2, dim3, dim4)
-         local size = {dim1, dim2, dim3, dim4}
-         local dim = #size
-         rawResize(self, dim, longvlact(dim, size))
-   end
+      function(self, dim1, dim2, dim3, dim4)
+         C.THRealTensor_resize4d(self, dim1, dim2, dim3, dim4)
+         return self
+      end
 }
 
 RealTensor.resizeAs = argcheck{
    {name='self', type='torch.RealTensor'},
    {name='src', type='torch.RealTensor'},
    call =
-   function(self, src)
-      rawResize(self, src.__nDimension, src.__size, nil)
-      return self
-   end
+      function(self, src)
+         C.THRealTensor_resizeAs(self, src)
+         return self
+      end
 }
 
 RealTensor.narrow = argcheck{
@@ -322,23 +233,14 @@ RealTensor.narrow = argcheck{
    {name='size', type='number'},
    call =
    function(self, src, dim, idx, size)
-      local dst = src and self or torch.RealTensor()
-      src = src or self
-      dim = dim - 1
-      idx = idx - 1
-
-      dst:set(src)
-
-      assert(dim >= 0 and dim < src.__nDimension, 'out of range')
-      assert(idx >= 0 and idx < src.__size[dim], 'out of range')
-      assert(size > 0 and idx+size <= src.__size[dim], 'out of range')
-
-      if idx > 0 then
-         dst.__storageOffset = dst.__storageOffset + idx*dst.__stride[dim];
-      end
-      dst.__size[dim] = size
-
-      return dst
+         if src then
+            C.THRealTensor_narrow(self, src, dim-1, idx-1, size)
+            return self
+         else
+            local tensor = C.THRealTensor_newNarrow(self, dim-1, idx-1, size)[0]
+            ffi.gc(tensor, C.THRealTensor_free)
+            return tensor
+         end
    end
 }
 
@@ -348,28 +250,16 @@ RealTensor.select = argcheck{
     {name='dim', type='number'},
     {name='idx', type='number'},
     call =
-   function(self, src, dim, idx)
-      local dst = src and self or torch.RealTensor()
-      src = src or self
-      dim = dim - 1
-      idx = idx - 1
-
-      assert(dim >= 0 and dim < src.__nDimension, 'out of range')
-      assert(idx >= 0 and idx < src.__size[dim], 'out of range')
-
-      if src.__nDimension == 1 then
-         return tonumber( (src.__storage.__data + src.__storageOffset)[idx*self.__stride[0]] )
-      else
-         dst:narrow(src, dim+1, idx+1, 1) -- DEBUG: 0-index confusing
-         for d=dim,self.__nDimension-2 do
-            dst.__size[d] = dst.__size[d+1]
-            dst.__stride[d] = dst.__stride[d+1]
+       function(self, src, dim, idx)
+         if src then
+            C.THRealTensor_select(self, src, dim, idx)
+            return self
+         else
+            local tensor = C.THRealTensor_newSelect(self, dim-1, idx-1)[0]
+            ffi.gc(tensor, C.THRealTensor_free)
+            return tensor
          end
-         dst.__nDimension = dst.__nDimension -1
-      end
-
-      return dst
-   end
+       end
 }
 
 RealTensor.transpose = argcheck{
@@ -378,29 +268,16 @@ RealTensor.transpose = argcheck{
     {name='dim1', type='number'},
     {name='dim2', type='number'},
     call =
-   function(self, src, dim1, dim2)
-      local dst = src and self or torch.RealTensor()
-      src = src or self
-      dst:set(src)
-      dim1 = dim1 - 1
-      dim2 = dim2 - 1
-
-      assert(dim1 >= 0 and dim1 < src.__nDimension, 'out of range')
-      assert(dim2 >= 0 and dim2 < src.__nDimension, 'out of range')
-
-      if dim1 == dim2 then
-         return dst
-      end
-
-      local z = dst.__stride[dim1]
-      dst.__stride[dim1] = dst.__stride[dim2]
-      dst.__stride[dim2] = z
-      z = dst.__size[dim1]
-      dst.__size[dim1] = dst.__size[dim2]
-      dst.__size[dim2] = z
-
-      return dst
-   end
+       function(self, src, dim1, dim2)
+         if src then
+            C.THRealTensor_transpose(self, src, dim1-1, dim2-1)
+            return self
+         else
+            local tensor = C.THRealTensor_newTranspose(self, dim1-1, dim2-1)[0]
+            ffi.gc(tensor, C.THRealTensor_free)
+            return tensor
+         end
+       end
 }
 
 RealTensor.unfold = argcheck{
@@ -410,73 +287,34 @@ RealTensor.unfold = argcheck{
     {name='size', type='number'},
     {name='step', type='number'},
     call =
-   function(self, src, dim, size, step)
-      local dst = src and self or torch.RealTensor()
-      src = src or self
-      dst:set(src)
-      dim = dim -1
-
-      assert(src.__nDimension > 0, "cannot unfold an empty tensor")
-      assert(dim >= 0 and dim < src.__nDimension, "out of range")
-      assert(size <= src.__size[dim], "out of range")
-      assert(step > 0, "invalid step")
-
-      local newSize = longvlact(dst.__nDimension+1)
-      local newStride = longvlact(dst.__nDimension+1)
-
-      newSize[dst.__nDimension] = size
-      newStride[dst.__nDimension] = dst.__stride[dim]
-      for d=0,dst.__nDimension-1 do
-         if d == dim then
-            newSize[d] = math.floor((dst.__size[d] - size) / step) + 1
-            newStride[d] = step*dst.__stride[d]
+       function(self, src, dim, size, step)
+         if src then
+            C.THRealTensor_unfold(self, src, dim-1, size, step)
+            return self
          else
-            newSize[d] = dst.__size[d]
-            newStride[d] = dst.__stride[d]
+            local tensor = C.THRealTensor_newTranspose(self, src, dim-1, size, step)[0]
+            ffi.gc(tensor, C.THRealTensor_free)
+            return tensor
          end
-      end
-
-      dst.__size = newSize
-      dst.__stride = newStride
-      dst.__nDimension = dst.__nDimension + 1
-
-      return dst
-   end
+       end
 }
 
 RealTensor.squeeze = argcheck{
    {name='self', type='torch.RealTensor'},
     {name='src', type='torch.RealTensor', opt=true},
     call =
-   function(self, src)
-      local dst = src and self or torch.RealTensor()
-      src = src or self
-      dst:set(src)
-
-      -- return nothing if tensor is empty!
-      if dst.__nDimension == 0 then
-         return
-      end
-
-      local ndim = 0
-      for d=0,src.__nDimension-1 do
-         if src.__size[d] ~= 1 then
-            if d ~= ndim then
-               dst.__size[ndim] = src.__size[d]
-               dst.__stride[ndim] = src.__stride[d]
-            end
-            ndim = ndim + 1
-         end
-      end
-
-      --- handle 0-dimension tensors
-      if ndim == 0 then
-         return tonumber( (dst.__storage.__data + dst.__storageOffset)[0] )
-      end
-      dst.__nDimension = ndim
-
-      return dst
-   end
+       function(self, src)
+          local dst = src and self or torch.RealTensor()
+          src = src or self
+          if src.__nDimension == 0 then
+             return
+          elseif src.__nDimension == 1 then
+             return src:data()[0]
+          else
+             C.THRealTensor_squeeze(dst, src)
+             return dst
+          end
+       end
 }
 
 RealTensor.squeeze1d = argcheck{
@@ -484,58 +322,28 @@ RealTensor.squeeze1d = argcheck{
     {name='src', type='torch.RealTensor', opt=true},
     {name='dim', type='number'},
     call =
-   function(self, src, dim)
-      local dst = src and self or torch.RealTensor()
-      src = src or self
-      dst:set(src)
-      dim = dim - 1
-
-      assert(dim >= 0 and dim < src.__nDimension, "dimension out of range")
-
-      dst:set(src)
-      if src.__size[dim] == 1 and src.__nDimension > 1 then
-         for d=dimension,dst.__nDimension-2 do
-            dst.__size[d] = dst.__size[d+1]
-            dst.__stride[d] = dst.__stride[d+1]
-         end
-         dst.__nDimension = dst.__nDimension - 1
-      end
-      return dst
-   end
+       function(self, src, dim)
+          local dst = src and self or torch.RealTensor()
+          src = src or self
+          C.THRealTensor_squeeze1d(dst, src, dim-1)
+          return dst
+       end
 }
 
 RealTensor.isContiguous = argcheck{
    {name='self', type='torch.RealTensor'},
    call =
-   function(self)
-      local z = 1
-      for d=self.__nDimension-1,0,-1 do
-         if self.__size[d] ~= 1 then
-            if self.__stride[d] == z then
-               z = z * self.__size[d]
-            else
-               return false
-            end
-         end
+      function(self)
+         return C.THRealTensor_isContiguous(self) == 1
       end
-      return true
-   end
 }
 
 RealTensor.nElement = argcheck{
    {name='self', type='torch.RealTensor'},
    call =
-   function(self)
-      if self.__nDimension == 0 then
-         return 0
-      else
-         local nElement = 1;
-         for d=0,self.__nDimension-1 do
-            nElement = nElement*self.__size[d]
-         end
-         return tonumber(nElement)
+      function(self)
+         return tonumber(C.THRealTensor_nElement(self))
       end
-   end
 }
 
 function RealTensor:__index(k)
@@ -574,3 +382,5 @@ function RealTensor:read(file, version)
    end
    self.__storage = file:readObject()
 end
+
+ffi.metatype('THRealTensor', getmetatable(RealTensor))
