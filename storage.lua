@@ -23,6 +23,7 @@ RealStorage.__factory =
 
 RealStorage.new = argcheck{
    {name="size", type="number", default=0},
+   nonamed = true,
    call =
       function(size)
          local self = C.THRealStorage_newWithSize(size)[0]
@@ -34,8 +35,9 @@ RealStorage.new = argcheck{
 argcheck{
    {name="table", type="table"},
    chain = RealStorage.new,
+   nonamed = true,
    call =
-      function(self, tbl)
+      function(tbl)
          local size = #tbl
          self = C.THRealStorage_newWithSize(size)[0]
          ffi.gc(self, C.THRealStorage_free)
