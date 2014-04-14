@@ -5,8 +5,6 @@ local class = require 'class'
 local C = require 'torch.TH'
 local register_ = require 'torch.register'
 
-torch.__generator = torch._generator or C.THGenerator_new()
-
 local function register(args)
    if args.nomethod and not args.nofunction then
       return register_(args, torch, nil)

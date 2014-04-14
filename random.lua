@@ -1,113 +1,137 @@
+local register_ = require 'torch.register'
 local argcheck = require 'argcheck'
 local torch = require 'torch.env'
+local class = require 'class'
 local ffi = require 'ffi'
-local C = require 'torch.clib'
+local C = require 'torch.TH'
 
-torch.random = argcheck{
+-- DEBUG: should register() be in argcheck?
+local function register(args)
+   return register_(args, torch, class.metatable('torch.Generator'))
+end
+
+local Generator = class('torch.Generator', nil, ffi.typeof('THGenerator&'))
+torch.Generator = Generator
+
+Generator.new = argcheck{
    call =
       function()
-         return tonumber(C.th_random())
+         local self = C.THGenerator_new()[0]
+         ffi.gc(self, C.THGenerator_free)
+         return self
       end
 }
 
-torch.manualSeed = argcheck{
-   {name="seed", type="number"},
-   call =
-      function(seed)
-         return C.th_manualseed(seed)
-      end
-}
+Generator.__factory = Generator.new
 
-torch.seed = argcheck{
-   {name="seed", type="number", opt=true},
+torch.__generator = torch.__generator or torch.Generator()
+
+ffi.metatype('THGenerator', class.metatable('torch.Generator'))
+
+register{
+   name = "random",
+   {name="generator", type="torch.Generator", opt=true, method={opt=false}},
+   {name="b", type="number", opt=true},
    call =
-      function(seed)
-         if seed then
-            C.th_manualseed(seed)
+      function(generator, b)
+         generator = generator or torch.__generator
+         if b then
+            return tonumber(C.THRandom_random(generator)) % b
          else
-            return tonumber(C.th_seed())
+            return tonumber(C.THRandom_random(generator))
          end
       end
 }
 
-torch.uniform = argcheck{
-   {name="a", type="number", default=-1},
+register{
+   name = "manualSeed",
+   {name="generator", type="torch.Generator", opt=true, method={opt=false}},
+   {name="seed", type="number"},
+   call =
+      function(generator, seed)
+         generator = generator or torch.__generator
+         C.THRandom_manualSeed(generator, seed)
+         return generator
+      end
+}
+
+register{
+   name = "uniform",
+   {name="generator", type="torch.Generator", opt=true, method={opt=false}},
+   {name="a", type="number", default=0},
    {name="b", type="number", default=1},
    call =
-      function(a, b)
-         return tonumber(C.th_random())/2^32 * (b-a) + a
+      function(generator, a, b)
+         generator = generator or torch.__generator
+         return tonumber(C.THRandom_uniform(generator, a, b))
       end
 }
 
-torch.normal = argcheck{
-   {name="mean", type="number", default=0},
-   {name="std", type="number", default=1},
+register{
+   name = "normal",
+   {name="generator", type="torch.Generator", opt=true, method={opt=false}},
+   {name="a", type="number", default=0},
+   {name="b", type="number", default=1},
    call =
-      function(mean, std)
-         local u, v
-         repeat
-            u = tonumber(C.th_random())/2^32
-            v = 1.7156*(tonumber(C.th_random())/2^32-0.5)
-            local x = u - 0.449871
-            local y = math.abs(v) + 0.386595
-            local q = x*x + y*(0.196*y-0.25472*x)
-         until q <= 0.27597 or (q <= 0.27846 and v*v <= -4*math.log(u)*u*u)
-         return mean + std*v/u
+      function(generator, a, b)
+         generator = generator or torch.__generator
+         return tonumber(C.THRandom_normal(generator, a, b))
       end
 }
 
-torch.exponential = argcheck{
-   {name="lambda", type="number"},
+register{
+   name = "cauchy",
+   {name="generator", type="torch.Generator", opt=true, method={opt=false}},
+   {name="a", type="number", default=0},
+   {name="b", type="number", default=1},
    call =
-      function(lambda)
-         return -1. / lambda * math.log(1-torch.uniform())
+      function(generator, a, b)
+         generator = generator or torch.__generator
+         return tonumber(C.THRandom_cauchy(generator, a, b))
       end
 }
 
-torch.cauchy = argcheck{
-   {name="median", type="number"},
-   {name="sigma", type="number"},
+register{
+   name = "logNormal",
+   {name="generator", type="torch.Generator", opt=true, method={opt=false}},
+   {name="a", type="number", default=1},
+   {name="b", type="number", default=2},
    call =
-      function(median, sigma)
-         return median + sigma * math.tan(math.pi*(torch.uniform()-0.5))
+      function(generator, a, b)
+         generator = generator or torch.__generator
+         return tonumber(C.THRandom_logNormal(generator, a, b))
       end
 }
 
-torch.cauchy = argcheck{
-   {name="median", type="number"},
-   {name="sigma", type="number"},
+register{
+   name = "exponential",
+   {name="generator", type="torch.Generator", opt=true, method={opt=false}},
+   {name="a", type="number", default=1},
    call =
-      function(median, sigma)
-         return median + sigma * math.tan(math.pi*(torch.uniform()-0.5))
+      function(generator, a)
+         generator = generator or torch.__generator
+         return tonumber(C.THRandom_exponential(generator, a))
       end
 }
 
-torch.lognormal = argcheck{
-   {name="mean", type="number"},
-   {name="std", type="number"},
+register{
+   name = "geometric",
+   {name="generator", type="torch.Generator", opt=true, method={opt=false}},
+   {name="a", type="number"},
    call =
-      function(mean, std)
-         local zm = mean*mean;
-         local zs = std*std;
-         assert(std > 0, "standard deviation must be strictly positive")
-         return math.exp(torch.normal(math.log(zm/math.sqrt(zs + zm)), math.sqrt(math.log(zs/zm+1)) ))
+      function(generator, a)
+         generator = generator or torch.__generator
+         return tonumber(C.THRandom_geometric(generator, a))
       end
 }
 
-torch.geometric = argcheck{
-   {name="p", type="number"},
+register{
+   name = "bernoulli",
+   {name="generator", type="torch.Generator", opt=true, method={opt=false}},
+   {name="a", type="number", default=0.5},
    call =
-      function(p)
-         assert(p > 0 and p < 1, "p must be > 0 and < 1")
-         return math.floor(math.log(1-torch.uniform()) / math.log(p)) + 1
-      end
-}
-
-torch.bernoulli = argcheck{
-   {name="p", type="number"},
-   call =
-      function(p)
-         assert(p >= 0 and p <= 1, "p must be >= 0 and <= 1")
-         return torch.uniform() <= p
+      function(generator, a)
+         generator = generator or torch.__generator
+         return tonumber(C.THRandom_bernoulli(generator, a))
       end
 }
