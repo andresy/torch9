@@ -4,7 +4,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 INCLUDE(TorchTemplate)
 
-SET(luasrc env.lua init.lua register.lua timer.lua apply.lua dimapply.lua
+SET(luasrc env.lua init.lua register.lua registernumbers.lua timer.lua apply.lua dimapply.lua
 display.lua random.lua file.lua diskfile.lua memoryfile.lua
 serialization.lua TH.lua)
 
