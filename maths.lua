@@ -3,8 +3,9 @@ local argcheck = require 'argcheck'
 local torch = require 'torch.env'
 local class = require 'class'
 local C = require 'torch.TH'
-local register_ = require 'torch.register'
+local register_ = require 'torch.registernumbers'
 
+-- handle method/function
 local function register(args)
    if args.nomethod and not args.nofunction then
       return register_(args, torch, nil)
@@ -14,8 +15,6 @@ local function register(args)
       return register_(args, torch, class.metatable('torch.RealTensor'))
    end
 end
-
--- numbers: we could emulate it in register() (right now it is done by hand)
 
 local function defaulttensortype()
    return class.type(torch.Tensor)
@@ -123,55 +122,6 @@ register{
          local res = src and dst or torch.RealTensor()
          src = src or dst
          C.THRealTensor_max(res, src, dim-1)
-         return res
-      end
-}
-
--- NYI
--- register{
---    name = "prod",
---    {name="src", type="torch.RealTensor"},
---    call =
--- }
-
-register{
-   name = "prod",
-   {name="dst", type="torch.RealTensor", opt=true, method={opt=false}},
-   {name="src", type="torch.RealTensor", method={opt=true}},
-   {name="dim", type="number"},
-   call =
-      function(dst, src, dim)
-         local res = src and dst or torch.RealTensor()
-         src = src or dst
-         C.THRealTensor_prod(res, src, dim-1)
-         return res
-      end
-}
-
-register{
-   name = "cumsum",
-   {name="dst", type="torch.RealTensor", opt=true, method={opt=false}},
-   {name="src", type="torch.RealTensor", method={opt=true}},
-   {name="dim", type="number"},
-   call =
-      function(dst, src, dim)
-         local res = src and dst or torch.RealTensor()
-         src = src or dst
-         C.THRealTensor_cumsum(res, src, dim-1)
-         return res
-      end
-}
-
-register{
-   name = "cumprod",
-   {name="dst", type="torch.RealTensor", opt=true, method={opt=false}},
-   {name="src", type="torch.RealTensor", method={opt=true}},
-   {name="dim", type="number"},
-   call =
-      function(dst, src, dim)
-         local res = src and dst or torch.RealTensor()
-         src = src or dst
-         C.THRealTensor_cumprod(res, src, dim-1)
          return res
       end
 }
@@ -300,12 +250,152 @@ register{
       end
 }
 
+for _, f in ipairs{
+   {name="mv", addname="addmv", arg1="mat", arg2="vec"},
+   {name="mm", addname="addmm", arg1="mat", arg2="mat"},
+   {name="ger", addname="addr", arg1="vec1", arg2="vec2"}} do
+
+   local func = C["THRealTensor_" .. f.addname]
+
+   register{
+      nomethod = true,
+      name = f.name,
+      {name=f.arg1, type="torch.RealTensor"},
+      {name=f.arg2, type="torch.RealTensor"},
+      call =
+         function(arg1, arg2)
+            local res = torch.RealTensor()
+            func(res, 1, nil, 1, mat, vec)
+            return res
+         end
+   }
+
+   register{
+      name = f.addname,
+      {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+      {name="src", type='torch.RealTensor', method={defaulta="self"}},
+      {name="alpha", type='number', default=1},
+      {name="mat", type='torch.RealTensor'}, -- could check dim
+      {name="vec", type='torch.RealTensor'},
+      call =
+         function(dst, src, alpha, mat, vec)
+            local res = src and dst or torch.RealTensor()
+            src = src or self
+            func(res, 1, src, alpha, mat, vec)
+            return res
+         end
+   }
+
+   register{
+      name = f.addname,
+      {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+      {name="beta", type='number'},
+      {name="src", type='torch.RealTensor', method={defaulta="self"}},
+      {name="alpha", type='number'},
+      {name="mat", type='torch.RealTensor'}, -- could check dim
+      {name="vec", type='torch.RealTensor'},
+      call =
+         function(dst, beta, src, alpha, mat, vec)
+            local res = src and dst or torch.RealTensor()
+            src = src or self
+            func(res, beta, src, alpha, mat, vec)
+            return res
+         end
+   }
+
+end
+
+register{
+   name = "numel",
+   {name="src", type="torch.RealTensor"},
+   call =
+      function(src)
+         return tonumber(THRealTensor_nElement(src))
+      end
+}
+
+-- NYI
+-- register{
+--    name = "prod",
+--    {name="src", type="torch.RealTensor"},
+--    call =
+-- }
+
+register{
+   name = "prod",
+   {name="dst", type="torch.RealTensor", opt=true, method={opt=false}},
+   {name="src", type="torch.RealTensor", method={opt=true}},
+   {name="dim", type="number"},
+   call =
+      function(dst, src, dim)
+         local res = src and dst or torch.RealTensor()
+         src = src or dst
+         C.THRealTensor_prod(res, src, dim-1)
+         return res
+      end
+}
+
+register{
+   name = "cumsum",
+   {name="dst", type="torch.RealTensor", opt=true, method={opt=false}},
+   {name="src", type="torch.RealTensor", method={opt=true}},
+   {name="dim", type="number"},
+   call =
+      function(dst, src, dim)
+         local res = src and dst or torch.RealTensor()
+         src = src or dst
+         C.THRealTensor_cumsum(res, src, dim-1)
+         return res
+      end
+}
+
+register{
+   name = "cumprod",
+   {name="dst", type="torch.RealTensor", opt=true, method={opt=false}},
+   {name="src", type="torch.RealTensor", method={opt=true}},
+   {name="dim", type="number"},
+   call =
+      function(dst, src, dim)
+         local res = src and dst or torch.RealTensor()
+         src = src or dst
+         C.THRealTensor_cumprod(res, src, dim-1)
+         return res
+      end
+}
+
+register{
+   name = "sign",
+   {name="dst", type="torch.RealTensor", opt=true, method={opt=false}},
+   {name="src", type="torch.RealTensor", method={opt=true}},
+   call =
+      function(dst, src)
+         local res = src and dst or torch.RealTensor()
+         src = src or dst
+         C.THRealTensor_sign(res, src)
+         return res
+      end
+}
+
 register{
    name = "trace",
    {name="src", type="torch.RealTensor"},
    call =
       function(src)
          return tonumber(C.THRealTensor_trace(src))
+      end
+}
+
+register{
+   name = "cross",
+   {name="dst", type="torch.RealTensor", opt=true, method={opt=false}},
+   {name="src1", type="torch.RealTensor"},
+   {name="src2", type="torch.RealTensor"},
+   {name="dim", type="number", default=0},
+   call =
+      function(dst, src1, src2, dim)
+         dst = dst or torch.RealTensor()
+         C.THRealTensor_cross(dst, src1, src2, dim-1)
+         return dst
       end
 }
 
@@ -324,34 +414,15 @@ register{
 }
 
 register{
-   name = "addmv",
+   name = "reshape",
    {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
-   {name="src", type='torch.RealTensor', method={defaulta="self"}},
-   {name="alpha", type='number', default=1},
-   {name="mat", type='torch.RealTensor'}, -- could check dim
-   {name="vec", type='torch.RealTensor'},
+   {name="src", type='torch.RealTensor', method={opt=true}},
+   {name="size", type='numbers'},
    call =
-      function(dst, src, alpha, mat, vec)
+      function(dst, src, size)
          local res = src and dst or torch.RealTensor()
-         src = src or self
-         C.THRealTensor_addmv(res, 1, src, alpha, mat, vec)
-         return res
-      end
-}
-
-register{
-   name = "addmv",
-   {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
-   {name="beta", type='number'},
-   {name="src", type='torch.RealTensor', method={defaulta="self"}},
-   {name="alpha", type='number'},
-   {name="mat", type='torch.RealTensor'}, -- could check dim
-   {name="vec", type='torch.RealTensor'},
-   call =
-      function(dst, beta, src, alpha, mat, vec)
-         local res = src and dst or torch.RealTensor()
-         src = src or self
-         C.THRealTensor_addmv(res, beta, src, alpha, mat, vec)
+         src = src or dst
+         C.THRealTensor_reshape(res, src, size)
          return res
       end
 }
