@@ -317,10 +317,11 @@ RealTensor.squeeze = argcheck{
        end
 }
 
-RealTensor.squeeze1d = argcheck{
+RealTensor.squeeze = argcheck{
    {name='self', type='torch.RealTensor'},
     {name='src', type='torch.RealTensor', opt=true},
     {name='dim', type='number'},
+    chain = RealTensor.squeeze,
     call =
        function(self, src, dim)
           local dst = src and self or torch.RealTensor()
