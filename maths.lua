@@ -414,6 +414,35 @@ register{
 }
 
 register{
+   name = "range",
+   {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+   {name="xmin", type='number'},
+   {name="xmax", type='number'},
+   {name="step", type='number', default=1},
+   call =
+      function(dst, xmin, xmax, step)
+         local res = dst or torch.RealTensor()
+         C.THRealTensor_range(res, xmin, xmax, step)
+         return res
+      end
+}
+
+register{
+   name = "randperm",
+   {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+   {name="generator", type='torch.Generator', opt=true},
+   {name="n", type='number'},
+   call =
+      function(dst, generator, n)
+         local res = dst or torch.RealTensor()
+         generator = generator or torch.__generator
+         C.THRealTensor_randperm(res, generator, n)
+         C.THRealTensor_add(res, res, 1)
+         return res
+      end
+}
+
+register{
    name = "reshape",
    {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
    {name="src", type='torch.RealTensor', method={opt=true}},
