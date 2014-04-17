@@ -427,6 +427,69 @@ register{
       end
 }
 
+register{
+   name = "sort",
+   {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+   {name="idx", type='torch.LongTensor', opt=true},
+   {name="src", type='torch.RealTensor', method={opt=true}},
+   {name="dim", type='number', opt=true},
+   {name="descend", type='boolean', default=false},
+   call =
+      function(dst, idx, src, dim, descend)
+         local res = src and dst or torch.RealTensor()
+         src = src or dst
+         idx = idx or torch.LongTensor()
+         dim = dim or src:nDimension()
+         C.THRealTensor_sort(res, idx, src, dim-1, descend and 1 or 0)
+         idx:add(1)
+         return res, idx
+      end
+}
+
+register{
+   name = "tril",
+   {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+   {name="src", type='torch.RealTensor', method={opt=true}},
+   {name="k", type='number', default=0},
+   call =
+      function(dst, src, k)
+         local res = src and dst or torch.RealTensor()
+         src = src or dst
+         C.THRealTensor_tril(res, src, k)
+         return res
+      end
+}
+
+register{
+   name = "triu",
+   {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+   {name="src", type='torch.RealTensor', method={opt=true}},
+   {name="k", type='number', default=0},
+   call =
+      function(dst, src, k)
+         local res = src and dst or torch.RealTensor()
+         src = src or dst
+         C.THRealTensor_triu(res, src, k)
+         return res
+      end
+}
+
+register{
+   name = "cat",
+   {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+   {name="src1", type='torch.RealTensor', method={opt=true}},
+   {name="src2", type='torch.RealTensor'},
+   {name="dim", type='number', opt=true},
+   call =
+      function(dst, src1, src2, dim)
+         local res = src1 and dst or torch.RealTensor()
+         src1 = src1 or dst
+         dim = dim or src1:nDimension()
+         C.THRealTensor_cat(res, src1, src2, dim-1)
+         return res
+      end
+}
+
 -- copy
 register{
    name = "copy",
@@ -681,6 +744,44 @@ register{
 if "real" == "double" or "real" == "float" then
 
    register{
+      name = "linspace",
+      {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+      {name="a", type="number"},
+      {name="b", type="number"},
+      {name="n", type="number", default=100},
+      {name="typename", type="string", defaultf=defaulttensortype}, -- namedispatch
+      call =
+         function(dst, a, b, n, typename)
+            if dst then
+               C.THRealTensor_linspace(dst, a, b, n)
+            else
+               dst = class.metatable(typename).new()
+               dst:linspace(a, b, n)
+            end
+            return dst
+         end
+   }
+
+   register{
+      name = "logspace",
+      {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+      {name="a", type="number"},
+      {name="b", type="number"},
+      {name="n", type="number", default=100},
+      {name="typename", type="string", defaultf=defaulttensortype}, -- namedispatch
+      call =
+         function(dst, a, b, n, typename)
+            if dst then
+               C.THRealTensor_logspace(dst, a, b, n)
+            else
+               dst = class.metatable(typename).new()
+               dst:logspace(a, b, n)
+            end
+            return dst
+         end
+   }
+
+   register{
       name = "mean",
       {name="src", type="torch.RealTensor"},
       call = C.THRealTensor_meanall
@@ -772,14 +873,46 @@ if "real" == "double" or "real" == "float" then
          end
    }
 
+   register{
+      name = "dist",
+      {name="dst", type="torch.RealTensor"},
+      {name="src", type="torch.RealTensor"},
+      {name="n", type="number", default=2},
+      call =
+         function(dst, src, n)
+            local res = src and dst or torch.RealTensor()
+            src = src or dst
+            local dist = C.THRealTensor_dist(dst, src, n)
+            return dist
+         end
+   }
+
+   register{
+      name = "histc",
+      {name="dst", type="torch.RealTensor", opt=true, method={opt=false}},
+      {name="src", type="torch.RealTensor", method={opt=true}},
+      {name="nbin", type="number", default=100},
+      {name="minvalue", type="number", opt=0},
+      {name="maxvalue", type="number", opt=0},
+      call =
+         function(dst, src, nbin, minvalue, maxvalue)
+            local res = src and dst or torch.RealTensor()
+            src = src or dst
+            C.THRealTensor_histc(dst, src, nbin, minvalue, maxvalue)
+            return res
+         end
+   }
+
    for _,name in ipairs{'log', 'log1p', 'exp', 'cos', 'acos', 'cosh', 'sin', 'asin',
                         'sinh', 'tan', 'atan', 'tanh', 'sqrt', 'ceil', 'floor', 'abs'} do
 
       local func = C['THRealTensor_' .. name]
+      local func_number = math[name]
+
       register{
          name = name,
          {name="dst", type="torch.RealTensor", opt=true, method={opt=false}},
-         {name="src", type="torch.RealTensor", method={defaulta="self"}},
+         {name="src", type="torch.RealTensor", method={opt=true}},
          call =
             function(dst, src)
                local res = src and dst or torch.RealTensor()
@@ -788,7 +921,34 @@ if "real" == "double" or "real" == "float" then
                return res
             end
       }
+
+      register{
+         name = name,
+         {name="x", type="number"},
+         call = func_number
+      }
    end
+
+   register{
+      name = "atan2",
+      {name="dst", type="torch.RealTensor", opt=true, method={opt=false}},
+      {name="src1", type="torch.RealTensor", method={opt=true}},
+      {name="src2", type="torch.RealTensor"},
+      call =
+         function(dst, src1, src2)
+            local res = src1 and dst or torch.RealTensor()
+            src1 = src1 or dst
+            C.THRealTensor_atan2(res, src1, src2)
+            return res
+         end
+   }
+
+   register{
+      name = "atan2",
+      {name="x", type="number"},
+      {name="y", type="number"},
+      call = math.atan2
+   }
 
    register{
       name = "pow",
