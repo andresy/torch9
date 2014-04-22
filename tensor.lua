@@ -262,6 +262,24 @@ RealTensor.select = argcheck{
        end
 }
 
+RealTensor.t = argcheck{
+   {name='self', type='torch.RealTensor'},
+    {name='src', type='torch.RealTensor', opt=true},
+    call =
+       function(self, src)
+         if src then
+            assert(src.__nDimension == 2, 'tensor to be transposed must be 2D')
+            C.THRealTensor_transpose(self, src, 0, 1)
+            return self
+         else
+            assert(self.__nDimension == 2, 'tensor to be transposed must be 2D')
+            local tensor = C.THRealTensor_newTranspose(self, 0, 1)[0]
+            ffi.gc(tensor, C.THRealTensor_free)
+            return tensor
+         end
+       end
+}
+
 RealTensor.transpose = argcheck{
    {name='self', type='torch.RealTensor'},
     {name='src', type='torch.RealTensor', opt=true},
