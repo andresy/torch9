@@ -48,6 +48,20 @@ argcheck{
       end
 }
 
+argcheck{
+   {name="filename", type="string"},
+   {name="shared", type="boolean", default=false},
+   {name="size", type="number", default=0},
+   chain = RealStorage.new,
+   nonamed = true,
+   call =
+      function(filename, shared, size)
+         local self = C.THRealStorage_newWithMapping(filename, size, shared and 1 or 0)[0]
+         ffi.gc(self, C.THRealStorage_free)
+         return self
+      end
+}
+
 RealStorage.fill = argcheck{
    {name="self", type="torch.RealStorage"},
    {name="value", type="number"},
@@ -168,7 +182,6 @@ argcheck{
 }
 
 function RealStorage:__index(k)
---   print('REQ', k)
    if type(k) == 'number' then
       if k > 0 and k <= tonumber(self.__size) then
          return tonumber(self.__data[k-1])
