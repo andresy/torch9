@@ -367,12 +367,82 @@ RealTensor.nElement = argcheck{
 
 function RealTensor:__index(k)
    if type(k) == 'number' then
-      assert(self.__nDimension >= 1 and k > 0 and k <= self.__size[0], 'out of bounds')
       if self.__nDimension == 1 then
-         k = k - 1
-         return tonumber( self.__storage.__data[k*self.__stride[0]+self.__storageOffset] )
+         assert(k > 0 and k <= self.__size[0], 'out of range')
+         return tonumber( self.__storage.__data[(k-1)*self.__stride[0]+self.__storageOffset] )
+      elseif self.__nDimension > 1 then
+         assert(k > 0 and k <= self.__size[0], 'out of range')
+         return self:select(1, k-1)
       else
-         return self:select(1, k)
+         error('empty tensor')
+      end
+   elseif class.type(k) == 'torch.LongStorage' then
+      assert(k.__size == self.__nDimension, 'invalid storage size')
+      local idx = self.__storageOffset
+      for dim=0,tonumber(k.__size)-1 do
+         local z = k.__data[dim]-1
+         assert(z >= 0 and z < self.__size[dim], 'out of range')
+         idx = idx + z*self.__stride[dim]
+      end
+      return tonumber(self.__storage.__data[idx])
+   elseif class.type(k) == 'torch.ByteTensor' then
+      local vals = torch.RealTensor()
+      C.THRealTensor_maskedSelect(vals, self, k)
+      return vals
+   elseif class.type(k) == 'table' then
+      assert(#k <= self.__nDimension, 'invalid table size')
+      local cdim = 0
+      local res
+      self = C.THRealTensor_newWithTensor(self)[0]
+      for dim=0,self.__nDimension-1 do
+         local z = k[dim+1]
+         if type(z) == 'number' then
+            z = z - 1
+            if z < 0 then
+               z = self.__size[cdim] + z + 1
+            end
+            assert(z >= 0 and z < self.__size[cdim], 'out of range')
+            if self.__nDimension == 1 then
+               res = self.__storage.__data[self.__storageOffset+z*self.__stride[0]]
+            else
+               C.THRealTensor_select(self, nil, cdim, z)
+            end
+         elseif type(z) == 'table' then
+            local a = 0
+            local b = self.__size[cdim]-1
+
+            local zz = z[1]
+            if type(zz) == 'number' then
+               a = zz-1
+               b = a
+            end
+            if a < 0 then
+               a = self.__size[cdim] + a + 1
+            end
+            assert(a >= 0 and a < self.__size[cdim], 'out of range')
+
+            local zz = z[2]
+            if type(zz) == 'number' then
+               b = zz-1
+            end
+            if b < 0 then
+               b = self.__size[cdim] + b + 1
+            end
+            assert(b >= 0 and b < self.__size[cdim], 'out of range')
+
+            assert(b >= a, 'end index must be greater or equal to start index')
+            C.THRealTensor_narrow(self, nil, cdim, a, b-a+1)
+            cdim = cdim + 1
+         elseif type(z) ~= 'nil' then
+            error('invalid table')
+         end
+      end
+      if res then
+         C.THRealTensor_free(self)
+         return res
+      else
+         ffi.gc(self, C.THRealTensor_free)
+         return self
       end
    else
       return RealTensor[k]
