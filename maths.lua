@@ -519,6 +519,127 @@ register{
       end
 }
 
+-- comparison
+for _,name in ipairs{'lt','gt','le','ge','eq','ne'} do
+   local func_val = C['THRealTensor_' .. name .. 'Value']
+   local func_valT = C['THRealTensor_' .. name .. 'ValueT']
+   local func_tens = C['THRealTensor_' .. name .. 'Tensor']
+   local func_tensT = C['THRealTensor_' .. name .. 'TensorT']
+
+   register{
+      nomethod = true,
+      name = name,
+      {name="dst", type='torch.ByteTensor', opt=true},
+      {name="src", type='torch.RealTensor'},
+      {name="value", type='number'},
+      call =
+         function(dst, src, value)
+            local res = dst or torch.ByteTensor()
+            func_val(res, src, value) -- DEBUG: TH args is not right (it is not like a method...)
+            return res
+         end
+   }
+
+   register{
+      nofunction = true,
+      name = name,
+      {name="src", type='torch.RealTensor'},
+      {name="value", type='number'},
+      {name="dst", type='torch.ByteTensor', opt=true},
+      call =
+         function(src, value, dst)
+            local res = dst or torch.ByteTensor()
+            func_val(res, src, value)
+            return res
+         end
+   }
+
+   register{
+      nomethod = true,
+      name = name,
+      {name="dst", type='torch.RealTensor', opt=true},
+      {name="src", type='torch.RealTensor'},
+      {name="value", type='number'},
+      call =
+         function(dst, src, value)
+            local res = dst or torch.RealTensor()
+            func_valT(res, src, value) -- DEBUG: TH args is not right (it is not like a method...)
+            return res
+         end
+   }
+
+   register{
+      nofunction = true,
+      name = name,
+      {name="src", type='torch.RealTensor'},
+      {name="value", type='number'},
+      {name="dst", type='torch.RealTensor', opt=true},
+      call =
+         function(src, value, dst)
+            local res = dst or torch.RealTensor()
+            func_valT(res, src, value)
+            return res
+         end
+   }
+
+   register{
+      nomethod = true,
+      name = name,
+      {name="dst", type='torch.ByteTensor', opt=true},
+      {name="src1", type='torch.RealTensor'},
+      {name="src2", type='torch.RealTensor'},
+      call =
+         function(dst, src1, src2)
+            local res = dst or torch.ByteTensor()
+            func_tens(res, src1, src2) -- DEBUG: TH args is not right (it is not like a method...)
+            return res
+         end
+   }
+
+   register{
+      nofunction = true,
+      name = name,
+      {name="src1", type='torch.RealTensor'},
+      {name="src2", type='torch.RealTensor'},
+      {name="dst", type='torch.ByteTensor', opt=true},
+      call =
+         function(src1, src2, dst)
+            local res = dst or torch.ByteTensor()
+            func_tens(res, src1, src2)
+            return res
+         end
+   }
+
+   register{
+      nomethod = true,
+      name = name,
+      {name="dst", type='torch.RealTensor', opt=true},
+      {name="src1", type='torch.RealTensor'},
+      {name="src2", type='torch.RealTensor'},
+      call =
+         function(dst, src1, src2)
+            local res = dst or torch.RealTensor()
+            func_tensT(res, src1, src2) -- DEBUG: TH args is not right (it is not like a method...)
+            return res
+         end
+   }
+
+   register{
+      nofunction = true,
+      name = name,
+      {name="src1", type='torch.RealTensor'},
+      {name="src2", type='torch.RealTensor'},
+      {name="dst", type='torch.RealTensor', opt=true},
+      call =
+         function(src1, src2, dst)
+            local res = dst or torch.RealTensor()
+            func_tensT(res, src1, src2)
+            return res
+         end
+   }
+
+end
+
 -- copy
 register{
    name = "copy",
