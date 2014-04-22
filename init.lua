@@ -19,6 +19,7 @@ require 'torch.tensor'
 require 'torch.apply'
 require 'torch.dimapply'
 require 'torch.maths'
+require 'torch.lapack'
 require 'torch.random'
 
 require 'torch.file'

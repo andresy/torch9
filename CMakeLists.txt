@@ -11,6 +11,7 @@ serialization.lua TH.lua)
 ADD_TORCH_TEMPLATE("storage.lua" luasrc "torch")
 ADD_TORCH_TEMPLATE("tensor.lua" luasrc "torch")
 ADD_TORCH_TEMPLATE("maths.lua" luasrc "torch")
+ADD_TORCH_TEMPLATE("lapack.lua" luasrc "torch")
 
 INSTALL(FILES ${luasrc}
   DESTINATION "${LUA_PATH_DIR}")
