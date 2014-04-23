@@ -909,6 +909,47 @@ register{
       end
 }
 
+local function rawfuncmap(sz, x, incx, y, incy, func)
+   for i=0,sz-1 do
+      local res = func(tonumber(x[i*incx]), tonumber(y[i*incy]))
+      if res then
+         x[i*incx] = res
+      end
+   end
+end
+
+register{
+   name = "map",
+   {name="src1", type="torch.RealTensor"},
+   {name="src2", type="torch.RealTensor"},
+   {name="func", type="function"},
+   call =
+      function(src1, src2, func)
+         torch.rawapply2(src1, src2, rawfuncmap, func)
+      end
+}
+
+local function rawfuncmap2(sz, x, incx, y, incy, z, incz, func)
+   for i=0,sz-1 do
+      local res = func(tonumber(x[i*incx]), tonumber(y[i*incy]), tonumber(z[i*incz]))
+      if res then
+         x[i*incx] = res
+      end
+   end
+end
+
+register{
+   name = "map2",
+   {name="src1", type="torch.RealTensor"},
+   {name="src2", type="torch.RealTensor"},
+   {name="src3", type="torch.RealTensor"},
+   {name="func", type="function"},
+   call =
+      function(src1, src2, src3, func)
+         torch.rawapply3(src1, src2, src3, rawfuncmap2, func)
+      end
+}
+
 -- float only
 if "real" == "double" or "real" == "float" then
 
