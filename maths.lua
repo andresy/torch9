@@ -890,21 +890,22 @@ register{
 }
 
 -- apply and map
+local function rawfuncapply(sz, x, inc, func)
+   for i=0,sz-1 do
+      local res = func(tonumber(x[i*inc]))
+      if res then
+         x[i*inc] = res
+      end
+   end
+end
+
 register{
    name = "apply",
    {name="src", type="torch.RealTensor"},
    {name="func", type="function"},
    call =
       function(src, func)
-         local function rawfunc(sz, x, inc)
-            for i=0,sz-1 do
-               local res = func(tonumber(x[i*inc]))
-               if res then
-                  x[i*inc] = res
-               end
-            end
-         end
-         torch.rawapply(src, rawfunc)
+         torch.rawapply(src, rawfuncapply, func)
       end
 }
 
