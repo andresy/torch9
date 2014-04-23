@@ -85,7 +85,7 @@ local function generate_apply(dim)
 end
 
 local applyfuncs = {}
-function torch.apply(t1, func)
+function torch.rawapply(t1, func)
    local dim = tonumber(t1.__nDimension)
    local applyfunc = applyfuncs[dim]
    if not applyfunc then
@@ -96,7 +96,7 @@ function torch.apply(t1, func)
 end
 
 local apply2funcs = {}
-function torch.apply2(t1, t2, func)
+function torch.rawapply2(t1, t2, func)
    local dim1 = tonumber(t1.__nDimension)
    local dim2 = tonumber(t2.__nDimension)
    apply2funcs[dim1] = apply2funcs[dim1] or {}
@@ -109,7 +109,7 @@ function torch.apply2(t1, t2, func)
 end
 
 local apply3funcs = {}
-function torch.apply3(t1, t2, t3, func)
+function torch.rawapply3(t1, t2, t3, func)
    local dim1 = tonumber(t1.__nDimension)
    local dim2 = tonumber(t2.__nDimension)
    local dim3 = tonumber(t3.__nDimension)

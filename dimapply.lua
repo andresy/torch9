@@ -66,7 +66,7 @@ local function generatedimapply_n(n)
 end
 
 local dimapply1funcs = {}
-function torch.dimapply(t1, dim, func)
+function torch.rawdimapply(t1, dim, func)
    local dim1 = t1.__nDimension
    dimapply1funcs[dim1] = dimapply1funcs[dim1] or {}
    local dimapplyfunc = dimapply1funcs[dim1][dim-1]
@@ -78,7 +78,7 @@ function torch.dimapply(t1, dim, func)
 end
 
 local dimapply2funcs = {}
-function torch.dimapply2(t1, t2, dim, func)
+function torch.rawdimapply2(t1, t2, dim, func)
    local dim1 = t1.__nDimension
    dimapply2funcs[dim1] = dimapply2funcs[dim1] or {}
    local dimapplyfunc = dimapply2funcs[dim1][dim-1]
@@ -90,7 +90,7 @@ function torch.dimapply2(t1, t2, dim, func)
 end
 
 local dimapply3funcs = {}
-function torch.dimapply3(t1, t2, t3, dim, func)
+function torch.rawdimapply3(t1, t2, t3, dim, func)
    local dim1 = t1.__nDimension
    dimapply3funcs[dim1] = dimapply3funcs[dim1] or {}
    local dimapplyfunc = dimapply3funcs[dim1][dim-1]
