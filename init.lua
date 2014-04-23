@@ -21,6 +21,7 @@ require 'torch.dimapply'
 require 'torch.maths'
 require 'torch.lapack'
 require 'torch.conv'
+require 'torch.tensorop'
 require 'torch.random'
 
 require 'torch.file'
