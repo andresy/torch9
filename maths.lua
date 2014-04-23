@@ -889,6 +889,25 @@ register{
       end
 }
 
+-- apply and map
+register{
+   name = "apply",
+   {name="src", type="torch.RealTensor"},
+   {name="func", type="function"},
+   call =
+      function(src, func)
+         local function rawfunc(sz, x, inc)
+            for i=0,sz-1 do
+               local res = func(tonumber(x[i*inc]))
+               if res then
+                  x[i*inc] = res
+               end
+            end
+         end
+         torch.rawapply(src, rawfunc)
+      end
+}
+
 -- float only
 if "real" == "double" or "real" == "float" then
 
