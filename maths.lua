@@ -258,14 +258,13 @@ for _, f in ipairs{
    local func = C["THRealTensor_" .. f.addname]
 
    register{
-      nomethod = true,
       name = f.name,
       {name=f.arg1, type="torch.RealTensor"},
       {name=f.arg2, type="torch.RealTensor"},
       call =
          function(arg1, arg2)
             local res = torch.RealTensor()
-            func(res, 1, nil, 1, mat, vec)
+            func(res, 0, res, 1, arg1, arg2)
             return res
          end
    }
