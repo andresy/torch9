@@ -413,35 +413,6 @@ register{
 }
 
 register{
-   name = "range",
-   {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
-   {name="xmin", type='number'},
-   {name="xmax", type='number'},
-   {name="step", type='number', default=1},
-   call =
-      function(dst, xmin, xmax, step)
-         local res = dst or torch.RealTensor()
-         C.THRealTensor_range(res, xmin, xmax, step)
-         return res
-      end
-}
-
-register{
-   name = "randperm",
-   {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
-   {name="generator", type='torch.Generator', opt=true},
-   {name="n", type='number'},
-   call =
-      function(dst, generator, n)
-         local res = dst or torch.RealTensor()
-         generator = generator or torch.__generator
-         C.THRealTensor_randperm(res, generator, n)
-         C.THRealTensor_add(res, res, 1)
-         return res
-      end
-}
-
-register{
    name = "reshape",
    {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
    {name="src", type='torch.RealTensor', method={opt=true}},
@@ -889,6 +860,45 @@ register{
       end
 }
 
+register{
+   name = "range",
+   {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+   {name="xmin", type='number'},
+   {name="xmax", type='number'},
+   {name="step", type='number', default=1},
+   {name="typename", type="string", defaultf=defaulttensortype}, -- namedispatch
+   call =
+      function(dst, xmin, xmax, step, typename)
+         if dst then
+            C.THRealTensor_range(dst, xmin, xmax, step)
+         else
+            dst = class.metatable(typename).new()
+            dst:range(xmin, xmax, step)
+         end
+         return dst
+      end
+}
+
+register{
+   name = "randperm",
+   {name="dst", type='torch.RealTensor', opt=true, method={opt=false}},
+   {name="generator", type='torch.Generator', opt=true},
+   {name="n", type='number'},
+   {name="typename", type="string", defaultf=defaulttensortype}, -- namedispatch
+   call =
+      function(dst, generator, n, typename)
+         generator = generator or torch.__generator
+         if dst then
+            C.THRealTensor_randperm(dst, generator, n)
+            C.THRealTensor_add(dst, dst, 1)
+         else
+            dst = class.metatable(typename).new()
+            dst:randperm(generator, n)
+         end
+         return dst
+      end
+}
+
 -- apply and map
 local function rawfuncapply(sz, x, inc, func)
    for i=0,sz-1 do
@@ -1006,7 +1016,7 @@ if "real" == "double" or "real" == "float" then
          function(dst, src, dim)
             local res = src and dst or torch.RealTensor()
             src = src or dst
-            C.THRealTensor_mean(dst, src, n, dim-1)
+            C.THRealTensor_mean(res, src, dim-1)
             return res
          end
    }
