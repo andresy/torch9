@@ -31,15 +31,21 @@ ffi.metatype('THGenerator', class.metatable('torch.Generator'))
 register{
    name = "random",
    {name="generator", type="torch.Generator", opt=true, method={opt=false}},
-   {name="b", type="number", opt=true},
+   {name="a", type="number", default=1},
+   {name="b", type="number"},
+   call =
+      function(generator, a, b)
+         generator = generator or torch.__generator
+         return tonumber(C.THRandom_random(generator)) % (b+1-a)+a
+      end
+}
+
+register{
+   name = "random",
+   {name="generator", type="torch.Generator", opt=true, method={opt=false}},
    call =
       function(generator, b)
-         generator = generator or torch.__generator
-         if b then
-            return tonumber(C.THRandom_random(generator)) % b
-         else
-            return tonumber(C.THRandom_random(generator))
-         end
+         return tonumber(C.THRandom_random(generator))
       end
 }
 
