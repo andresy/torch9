@@ -3892,4 +3892,18 @@ if not path and jit.os == 'OSX' then
 end
 assert(path, 'TH library not found')
 
-return ffi.load(path)
+
+local C = ffi.load(path, true)
+
+local function THError(msg, data)
+   error(ffi.string(msg))
+end
+
+local function THArgError(n, msg, data)
+   error(string.format('invalid argument #%d: %s', n, ffi.string(msg)))
+end
+
+C.THSetErrorHandler(THError, nil)
+C.THSetArgErrorHandler(THArgError, nil)
+
+return C
