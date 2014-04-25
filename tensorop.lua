@@ -81,7 +81,7 @@ function RealTensor:__index(k)
          return tonumber( self.__storage.__data[(k-1)*self.__stride[0]+self.__storageOffset] )
       elseif self.__nDimension > 1 then
          assert(k > 0 and k <= self.__size[0], 'out of range')
-         return self:select(1, k-1)
+         return self:select(1, k)
       else
          error('empty tensor')
       end
@@ -112,7 +112,7 @@ function RealTensor:__newindex(k, v)
       if type_v == 'number' then
          if self.__nDimension == 1 then
             assert(k > 0 and k <= self.__size[0], 'out of range')
-            self.__storage[self.__storageOffset+(k-1)*self.__stride[0]] = v
+            self.__storage.__data[self.__storageOffset+(k-1)*self.__stride[0]] = v
          elseif self.__nDimension > 1 then
             local t = C.THRealTensor_newWithTensor(t)
             C.THRealTensor_narrow(t, nil, 0, k-1, 1)
