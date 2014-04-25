@@ -118,7 +118,7 @@ for _, iotype in pairs(iotypes) do
       {name="storage", type="torch." .. iotype.Type .. "Storage"},
       call =
          function(self, storage)
-            return iotype.write(self, storage.__data, storage.__size)
+            return iotype.write(self, storage.__data, tonumber(storage.__size))
          end
    }
 
@@ -138,7 +138,7 @@ for _, iotype in pairs(iotypes) do
       {name="storage", type="torch." .. iotype.Type .. "Storage"},
       call =
          function(self, storage)
-            return iotype.read(self, storage.__data, storage.__size)
+            return iotype.read(self, storage.__data, tonumber(storage.__size))
          end
    }
 
@@ -149,7 +149,7 @@ for _, iotype in pairs(iotypes) do
       call =
          function(self, size)
             local storage = iotype.Storage(size)
-            local n = iotype.read(self, storage.__data, storage.__size)
+            local n = iotype.read(self, storage.__data, tonumber(storage.__size))
             if n ~= size then
                storage:resize(n)
             end
