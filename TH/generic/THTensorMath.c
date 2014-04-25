@@ -340,20 +340,24 @@ void THTensor_(addmv)(THTensor *r_, real beta, THTensor *t, real alpha, THTensor
 {
   if( (mat->nDimension != 2) || (vec->nDimension != 1) )
     THError("matrix and vector expected");
- 
+
   if( mat->size[1] != vec->size[0] )
     THError("size mismatch");
 
+  if(beta == 0)
+    THTensor_(resize1d)(t, mat->size[0]);
+
   if(t->nDimension != 1)
     THError("size mismatch");
-    
+
   if(t->size[0] != mat->size[0])
     THError("size mismatch");
 
   if(r_ != t)
   {
     THTensor_(resizeAs)(r_, t);
-    THTensor_(copy)(r_, t);
+    if(beta != 0)
+      THTensor_(copy)(r_, t);
   }
 
   if(mat->stride[0] == 1)
@@ -426,23 +430,27 @@ void THTensor_(match)(THTensor *r_, THTensor *m1, THTensor *m2, real gain)
 }
 
 void THTensor_(addmm)(THTensor *r_, real beta, THTensor *t, real alpha, THTensor *m1, THTensor *m2)
-{ 
+{
   char transpose_r, transpose_m1, transpose_m2;
   THTensor *r__, *m1_, *m2_;
 
-  if( (m1->nDimension != 2) || (m2->nDimension != 2) ) 
-    THError("matrix and matrix expected"); 
- 
+  if( (m1->nDimension != 2) || (m2->nDimension != 2) )
+    THError("matrix and matrix expected");
+
+  if(beta == 0)
+    THTensor_(resize2d)(t, m1->size[0], m2->size[1]);
+
   if(t->nDimension != 2)
-    THError("size mismatch"); 
+    THError("size mismatch");
 
   if( (t->size[0] != m1->size[0]) || (t->size[1] != m2->size[1]) || (m1->size[1] != m2->size[0]) ) 
-    THError("size mismatch"); 
+    THError("size mismatch");
 
   if(t != r_)
   {
     THTensor_(resizeAs)(r_, t);
-    THTensor_(copy)(r_, t);
+    if(beta != 0)
+      THTensor_(copy)(r_, t);
   }
 
 /*  printf("%ldx%ld = %ldx%ld X %ldx%ld\n", r_->size[0], r_->size[1], m1->size[0], m1->size[1], m2->size[0], m2->size[1]); */
@@ -464,7 +472,7 @@ void THTensor_(addmm)(THTensor *r_, real beta, THTensor *t, real alpha, THTensor
   else
   {
     transpose_r = 'n';
-    
+
     r__ = THTensor_(newWithSize2d)(r_->size[1], r_->size[0]);
     THTensor_(copy)(r__, r_);
     THTensor_(transpose)(r__, NULL, 0, 1);
@@ -528,23 +536,27 @@ void THTensor_(addmm)(THTensor *r_, real beta, THTensor *t, real alpha, THTensor
 
   if(r__ != r_)
     THTensor_(freeCopyTo)(r__, r_);
-} 
+}
 
 void THTensor_(addr)(THTensor *r_, real beta, THTensor *t, real alpha, THTensor *vec1, THTensor *vec2)
 {
   if( (vec1->nDimension != 1) || (vec2->nDimension != 1) )
     THError("vector and vector expected");
 
+  if(beta == 0)
+    THTensor_(resize2d)(t, vec1->size[0], vec2->size[0]);
+
   if(t->nDimension != 2)
     THError("size mismatch");
-    
+
   if( (t->size[0] != vec1->size[0]) || (t->size[1] != vec2->size[0]) )
     THError("size mismatch");
 
   if(r_ != t)
   {
     THTensor_(resizeAs)(r_, t);
-    THTensor_(copy)(r_, t);
+    if(beta != 0)
+      THTensor_(copy)(r_, t);
   }
 
   if(beta != 1)
