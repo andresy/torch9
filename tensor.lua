@@ -155,10 +155,21 @@ argcheck{
    chain = RealTensor.new,
    call =
    function(size)
-         size = ffi.new('long[?]', #size, size)
-         local self = C.THRealTensor_newWithSize(size, nil)[0]
-         ffi.gc(self, C.THRealTensor_free)
-         return self
+      size = torch.LongStorage(size)
+      local self = C.THRealTensor_newWithSize(size, nil)[0]
+      ffi.gc(self, C.THRealTensor_free)
+      return self
+   end
+}
+
+argcheck{
+   {name='size', type='torch.LongStorage'},
+   chain = RealTensor.new,
+   call =
+   function(size)
+      local self = C.THRealTensor_newWithSize(size, nil)[0]
+      ffi.gc(self, C.THRealTensor_free)
+      return self
    end
 }
 
@@ -170,6 +181,26 @@ argcheck{
          local self = C.THRealTensor_newWithTensor(tensor)[0]
          ffi.gc(self, C.THRealTensor_free)
          return self
+      end
+}
+
+RealTensor.clone = argcheck{
+   {name='self', type='torch.RealTensor'},
+   call =
+      function(self)
+         local tensor = C.THRealTensor_newClone(self)[0]
+         ffi.gc(tensor, C.THRealTensor_free)
+         return tensor
+      end
+}
+
+RealTensor.contiguous = argcheck{
+   {name='self', type='torch.RealTensor'},
+   call =
+      function(self)
+         local tensor = C.THRealTensor_newContiguous(self)[0]
+         ffi.gc(tensor, C.THRealTensor_free)
+         return tensor
       end
 }
 
@@ -251,7 +282,7 @@ RealTensor.select = argcheck{
     call =
        function(self, src, dim, idx)
          if src then
-            C.THRealTensor_select(self, src, dim, idx)
+            C.THRealTensor_select(self, src, dim-1, idx-1)
             return self
          else
             local tensor = C.THRealTensor_newSelect(self, dim-1, idx-1)[0]
